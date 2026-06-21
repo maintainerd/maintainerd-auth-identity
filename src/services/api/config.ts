@@ -25,7 +25,7 @@ const getBaseUrl = () => {
     return '/api/v1'
   }
   // Production: use environment variable or fallback
-  return import.meta.env.VITE_AUTH_API_BASE_URL || 'http://api.maintainerd.auth:8081/api/v1'
+  return import.meta.env.VITE_AUTH_API_BASE_URL || 'https://public-api.auth.maintainerd.local/api/v1'
 }
 
 export const API_CONFIG = {

@@ -28,7 +28,7 @@ export default defineConfig({
       // Proxy API requests to the public API via nginx during development.
       // nginx routes public-api.auth.maintainerd.local → auth:8081 (public surface).
       '/api': {
-        target: 'http://public-api.auth.maintainerd.local',
+        target: 'https://public-api.auth.maintainerd.local',
         changeOrigin: true,
         secure: false,
         configure: (proxy) => {
