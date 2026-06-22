@@ -20,6 +20,7 @@ export default defineConfig({
   server: {
     port: 5174,
     strictPort: false,
+    allowedHosts: ['.auth.maintainerd.local'],
     watch: {
       ignored: ['**/coverage/**'],
     },
