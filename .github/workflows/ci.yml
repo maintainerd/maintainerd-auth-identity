@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Lint — ESLint static analysis
+  # ─────────────────────────────────────────────────────────────────────────────
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Test — Vitest unit tests with coverage
+  # ─────────────────────────────────────────────────────────────────────────────
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests with coverage
+        run: npm run test:cov
+
+      - name: Upload coverage to Codecov
+        if: ${{ always() && hashFiles('coverage/lcov.info') != '' }}
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage/lcov.info
+          flags: unittests
+          name: maintainerd-auth-identity
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Build — type-check (tsc -b) + production bundle (vite build)
+  # This is the "does it compile cleanly?" gate.
+  # ─────────────────────────────────────────────────────────────────────────────
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check and build
+        run: npm run build

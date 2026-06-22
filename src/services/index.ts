@@ -1,0 +1,70 @@
+/**
+ * Services Index
+ * Central export point for all services
+ */
+
+// API Client and utilities
+export { ApiError, get, post, put, deleteRequest, patch } from './api/client'
+export { API_CONFIG, API_ENDPOINTS } from './api/config'
+export type * from './api/types'
+
+// Service-specific API types
+export type * from './api/auth/types'
+export type {
+  CreateTenantRequest,
+  TenantData,
+  CreateTenantResponse,
+  CreateAdminRequest,
+  AdminData,
+  CreateAdminResponse,
+  ProfileData,
+  SetupStatusData,
+  SetupStatusResponse,
+  CompleteSetupData,
+  CompleteSetupResponse,
+} from './api/setup/types'
+export type {
+  TenantStatus,
+  TenantEntity,
+  TenantListParams,
+  UpdateTenantRequest,
+  TenantResponse,
+  TenantListResponse,
+} from './api/tenants/types'
+
+// Setup service functions
+export {
+  createTenant,
+  createAdmin,
+  createProfile,
+  getSetupStatus,
+  completeSetup,
+  getDefaultTenantMetadata,
+  createTenantWithDefaults,
+  isSetupCompleted,
+} from './api/setup'
+
+// Authentication service functions
+export {
+  login,
+  verifyMFALogin,
+  sendMFALoginSMS,
+  beginMFALoginWebAuthn,
+  register,
+  registerInvite,
+  logout,
+  fetchProfile,
+  fetchAccount,
+  createUserProfile,
+  createRegisterProfile,
+  validateAuthentication,
+  forgotPassword,
+  resetPassword,
+} from './api/auth'
+
+// Tenant service functions
+export {
+  fetchDefaultTenant,
+  fetchTenantByIdentifier,
+  fetchTenant
+} from './api/tenants'
