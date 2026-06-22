@@ -32,3 +32,11 @@ coverage
 .env.*
 !.env.example
 tsconfig.tsbuildinfo
+
+# AI tools (local only)
+.agents/
+.claude/
+.codex/
+.opencode/
+AGENTS.md
+CLAUDE.md
