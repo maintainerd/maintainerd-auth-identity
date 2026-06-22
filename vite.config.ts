@@ -24,10 +24,10 @@ export default defineConfig({
       ignored: ['**/coverage/**'],
     },
     proxy: {
-      // Proxy API requests to the maintainerd-auth public API via nginx (port 80) during development.
-      // nginx routes api.public.maintainerd.auth → auth:8081 (public surface).
+      // Proxy API requests to the public API via nginx during development.
+      // nginx routes public-api.auth.maintainerd.local → auth:8081 (public surface).
       '/api': {
-        target: 'http://api.public.maintainerd.auth',
+        target: 'http://public-api.auth.maintainerd.local',
         changeOrigin: true,
         secure: false,
         configure: (proxy) => {
