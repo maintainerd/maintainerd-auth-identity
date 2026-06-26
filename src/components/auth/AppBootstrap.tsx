@@ -6,7 +6,8 @@ import { SERVICE_UNAVAILABLE_ROUTE } from '@/utils/postAuthRoute'
 import AppLoadingScreen from '@/components/layout/AppLoadingScreen'
 import { RouteGuard } from './RouteGuard'
 import { fetchPublicClient } from '@/services/api/public-client'
-import { rememberClientId } from '@/utils/clientContext'
+import { rememberPublicAuthContext } from '@/utils/clientContext'
+import { isOAuthInteractionRoute } from '@/utils/oauthRedirect'
 
 /**
  * App initialization gate.
@@ -41,14 +42,13 @@ export function AppBootstrap({ children }: { children: ReactNode }) {
   // un-settles, so the splash only appears for the very first resolution.
   useEffect(() => {
     const run = async () => {
-      const clientId = rememberClientId(location.search)
-      if (!clientId) {
+      const { clientId, tenantId } = rememberPublicAuthContext(location.search)
+      if (!clientId && !tenantId) {
         setTenantSettled(true)
         return
       }
       try {
-        const client = await fetchPublicClient(clientId)
-        const tenantIdentifier = client.tenant_id
+        const tenantIdentifier = tenantId || (await fetchPublicClient(clientId!)).tenant_id
         if (lastTenantIdentifierRef.current === tenantIdentifier) return
         lastTenantIdentifierRef.current = tenantIdentifier
         await initializeTenant(tenantIdentifier)
@@ -72,6 +72,7 @@ export function AppBootstrap({ children }: { children: ReactNode }) {
     location.pathname === '/login' ||
     location.pathname === '/magic-link' ||
     location.pathname === '/reset-password' ||
+    isOAuthInteractionRoute(location.pathname) ||
     location.pathname.startsWith('/register') ||
     /^\/[^/]+\/login$/.test(location.pathname)
 

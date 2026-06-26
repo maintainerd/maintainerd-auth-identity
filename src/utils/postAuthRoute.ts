@@ -15,6 +15,7 @@
 import type { AccountEntity } from '@/services/api/auth/types'
 import type { TenantEntity } from '@/services/api/tenants/types'
 import { getTenantIdentifierFromPath } from '@/utils/tenant'
+import { isBrokerAuthorizeRoute, isOAuthInteractionRoute, oauthLoginRoute } from '@/utils/oauthRedirect'
 
 export const VERIFY_EMAIL_ROUTE = '/email-verification'
 export const REGISTER_PROFILE_ROUTE = '/register/profile'
@@ -66,6 +67,7 @@ export function resolvePostAuthRoute(
 
 export interface GuardContext {
   pathname: string
+  search?: string
   isAuthenticated: boolean
   account: AccountEntity | null | undefined
   tenant: TenantEntity | null | undefined
@@ -84,7 +86,7 @@ export interface GuardContext {
  * (otherwise account/tenant are not yet known).
  */
 export function resolveGuardRedirect(ctx: GuardContext): string | null {
-  const { pathname, isAuthenticated, account, tenant } = ctx
+  const { pathname, search = '', isAuthenticated, account, tenant } = ctx
 
   if (pathname === NO_ACCESS_ROUTE || pathname === SERVICE_UNAVAILABLE_ROUTE || pathname.startsWith('/setup')) {
     return null
@@ -123,8 +125,20 @@ export function resolveGuardRedirect(ctx: GuardContext): string | null {
     return null
   }
 
-  if (!isAuthenticated) return LOGIN_ROUTE
+  if (!isAuthenticated) {
+    if (isBrokerAuthorizeRoute(pathname, search)) {
+      return null
+    }
+    if (isOAuthInteractionRoute(pathname)) {
+      return oauthLoginRoute(pathname, search, tenant?.identifier)
+    }
+    return LOGIN_ROUTE
+  }
   if (home !== LOGIN_SUCCESS_ROUTE) return home
+
+  if (isOAuthInteractionRoute(pathname)) {
+    return null
+  }
 
   const urlTenant = getTenantIdentifierFromPath(pathname)
   const ownTenant = account?.tenant?.identifier

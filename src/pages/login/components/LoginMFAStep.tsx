@@ -44,13 +44,13 @@ export function LoginMFAStep({ challengeToken, allowedMethods, tenantId, clientI
   }, [allowedMethods])
 
   const smsMutation = useMutation({
-    mutationFn: () => sendMFALoginSMS(challengeToken),
+    mutationFn: () => sendMFALoginSMS(challengeToken, { tenantId, clientId }),
     onSuccess: () => setSmsSent(true),
     onError: (e) => showError(e),
   })
 
   const emailOtpMutation = useMutation({
-    mutationFn: () => sendMFALoginEmailOtp(challengeToken),
+    mutationFn: () => sendMFALoginEmailOtp(challengeToken, { tenantId, clientId }),
     onSuccess: () => setEmailOtpSent(true),
     onError: (e) => showError(e),
   })
@@ -58,7 +58,7 @@ export function LoginMFAStep({ challengeToken, allowedMethods, tenantId, clientI
   const verifyMutation = useMutation({
     mutationFn: async () => {
       if (METHOD_META[method]?.webauthn) {
-        const options = await beginMFALoginWebAuthn(challengeToken)
+        const options = await beginMFALoginWebAuthn(challengeToken, { tenantId, clientId })
         const assertion = await getAssertion(options)
         return completeMFALogin(challengeToken, method, { assertion }, tenantId, clientId)
       }

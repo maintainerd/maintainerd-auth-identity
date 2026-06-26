@@ -8,7 +8,7 @@ import { FieldGroup } from "@/components/ui/field"
 import { Button } from "@/components/ui/button"
 import { FormInputField, FormSubmitButton } from "@/components/form"
 import { post } from "@/services/api/client"
-import { requireClientId } from "@/utils/clientContext"
+import { publicAuthQuery } from "@/utils/clientContext"
 import LoginLayout from "@/components/layout/LoginLayout"
 import { useTenant } from "@/hooks/useTenant"
 import { useAuth } from "@/hooks/useAuth"
@@ -65,7 +65,7 @@ export default function VerifyEmailPage() {
   const handleResend = async () => {
     setResending(true)
     try {
-      await post(`/email-verification/send?client_id=${encodeURIComponent(requireClientId())}`, { email })
+      await post(`/email-verification/send?${publicAuthQuery()}`, { email })
     } catch { /* fail silently */ }
     finally { setResending(false) }
   }

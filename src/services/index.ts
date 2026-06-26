@@ -10,6 +10,7 @@ export type * from './api/types'
 
 // Service-specific API types
 export type * from './api/auth/types'
+export type * from './api/oauth/types'
 export type {
   CreateTenantRequest,
   TenantData,
@@ -61,6 +62,20 @@ export {
   forgotPassword,
   resetPassword,
 } from './api/auth'
+
+// OAuth2 / OIDC browser interaction service functions
+export {
+  authorizeOAuth,
+  fetchOAuthConsentChallenge,
+  submitOAuthConsent,
+  listOAuthConsentGrants,
+  revokeOAuthConsentGrant,
+  approveOAuthDevice,
+  denyOAuthDevice,
+  approveOAuthCIBA,
+  denyOAuthCIBA,
+  oauthEndSessionURL,
+} from './api/oauth'
 
 // Tenant service functions
 export {

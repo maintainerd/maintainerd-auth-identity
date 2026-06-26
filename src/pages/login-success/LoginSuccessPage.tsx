@@ -31,7 +31,7 @@ export default function LoginSuccessPage() {
         <div className="space-y-2">
           <h1 className="text-2xl font-bold">You&apos;re signed in</h1>
           <p className="text-muted-foreground">
-            You are now authenticated. OAuth2 callback handling will be configured separately.
+            You can continue from this session or sign out when you are done.
           </p>
         </div>
         <Button variant="outline" onClick={handleLogout}>

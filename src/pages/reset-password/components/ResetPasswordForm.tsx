@@ -23,12 +23,13 @@ const ResetPasswordForm = () => {
 
   // Get query params
   const clientId = searchParams.get('client_id')
+  const tenantId = searchParams.get('tenant_id')
   const expires = searchParams.get('expires')
   const sig = searchParams.get('sig')
   const token = searchParams.get('token')
 
   // Check if all required query params are present
-  const hasValidParams = clientId && expires && sig && token
+  const hasValidParams = Boolean((clientId ? 1 : 0) + (tenantId ? 1 : 0) === 1 && expires && sig && token)
   const passwordConfig = getCurrentTenant()?.password_config
   const resetSchema = useMemo(() => buildResetPasswordSchema(passwordConfig), [passwordConfig])
 
@@ -64,7 +65,8 @@ const ResetPasswordForm = () => {
       await resetPassword({
         password: { new_password: data.password },
         queryParams: {
-          client_id: clientId!,
+          client_id: clientId || undefined,
+          tenant_id: tenantId || undefined,
           expires: expires!,
           sig: sig!,
           token: token!

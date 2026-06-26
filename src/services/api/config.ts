@@ -10,6 +10,12 @@
  *          POST /logout, POST /refresh-token, POST /magic-link/*,
  *          POST /forgot-password, POST /reset-password, GET /profile,
  *          POST /profile, login MFA endpoints
+ *   OAuth2/OIDC: GET /oauth/authorize, GET /oauth/consent/{challenge_id},
+ *          POST /oauth/consent, POST /oauth/device, POST /oauth/device/deny,
+ *          POST /oauth/ciba/approve, POST /oauth/ciba/deny,
+ *          GET /oauth/consent/grants, DELETE /oauth/consent/grants/{grant_uuid},
+ *          GET/POST /oauth/end_session, plus protocol endpoints for token,
+ *          PAR, device authorization, CIBA, revocation, DCR, and backchannel logout
  *   Discovery: GET /client?client_id=..., then GET /tenant/{derivedIdentifier}
  *   Setup:  GET /setup/status, POST /setup/*
  */

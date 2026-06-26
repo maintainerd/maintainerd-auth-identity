@@ -22,6 +22,7 @@ import type { AccountEntity } from '@/services/api/auth/types'
 // Extended register request with optional query parameters
 export interface RegisterAsyncRequest extends Omit<RegisterRequest, 'username'> {
   clientId?: string
+  tenantId?: string
 }
 
 // LoginThunkResult is the shared fulfilled payload for the password and MFA

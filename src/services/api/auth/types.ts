@@ -126,6 +126,7 @@ export interface RegisterInviteQueryParams {
   auth_flow?: string
   email?: string
   client_id?: string
+  tenant_id?: string
 }
 
 export type ProfileResponse = ApiResponse<ProfileEntity>
@@ -141,7 +142,8 @@ export interface ResetPasswordRequest {
 }
 
 export interface ResetPasswordQueryParams {
-  client_id: string
+  client_id?: string
+  tenant_id?: string
   expires: string
   sig: string
   token: string

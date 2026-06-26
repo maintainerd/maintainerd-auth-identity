@@ -74,8 +74,8 @@ export function useAuth() {
     password: string,
     phone?: string
   ) => {
-    // Public authentication is scoped only by client_id.
     const clientId = searchParams.get('client_id')
+    const tenantId = searchParams.get('tenant_id')
 
     const result = await dispatch(registerAsync({
       fullname,
@@ -83,6 +83,7 @@ export function useAuth() {
       password,
       phone,
       clientId: clientId || undefined,
+      tenantId: tenantId || undefined,
     })).unwrap()
 
     return { data: result.data }
@@ -97,6 +98,7 @@ export function useAuth() {
     const sig = searchParams.get('sig') || ''
     const authFlow = searchParams.get('auth_flow') || undefined
     const inviteClientId = searchParams.get('client_id') || undefined
+    const inviteTenantId = searchParams.get('tenant_id') || undefined
 
     const result = await dispatch(registerInviteAsync({
       username,
@@ -107,6 +109,7 @@ export function useAuth() {
         sig,
         auth_flow: authFlow,
         client_id: inviteClientId,
+        tenant_id: inviteTenantId,
       }
     })).unwrap()
 

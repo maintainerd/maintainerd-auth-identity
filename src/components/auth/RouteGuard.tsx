@@ -20,6 +20,7 @@ export function RouteGuard({ children }: { children: ReactNode }) {
 
   const target = resolveGuardRedirect({
     pathname: location.pathname,
+    search: location.search,
     isAuthenticated,
     account,
     tenant: currentTenant,

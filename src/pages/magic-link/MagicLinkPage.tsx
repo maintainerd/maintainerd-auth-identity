@@ -31,10 +31,10 @@ export default function MagicLinkPage() {
 
   useEffect(() => {
     if (verifiedRef.current) return
-    const hasClientContext = searchParams.has("client_id") && !searchParams.has("tenant_id")
+    const hasSingleAuthContext = searchParams.has("client_id") !== searchParams.has("tenant_id")
     const hasSignedLink = searchParams.has("expires") && searchParams.has("sig")
 
-    if (!searchParams.get("token") || !hasClientContext || !hasSignedLink) {
+    if (!searchParams.get("token") || !hasSingleAuthContext || !hasSignedLink) {
       setStatus("error")
       setErrorMessage("This magic link is invalid or incomplete. Please request a new one.")
       return
@@ -137,6 +137,7 @@ export default function MagicLinkPage() {
             challengeToken={mfaChallenge.token}
             allowedMethods={mfaChallenge.methods}
             clientId={searchParams.get("client_id") || undefined}
+            tenantId={searchParams.get("tenant_id") || undefined}
             onVerified={(result) => finishAuthentication(result.account)}
             onCancel={() => navigate("/login", { replace: true })}
           />

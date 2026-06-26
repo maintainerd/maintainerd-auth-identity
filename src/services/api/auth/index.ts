@@ -8,7 +8,7 @@ import { API_ENDPOINTS, TOKEN_DELIVERY_HEADER } from '../config'
 import type { ApiResponse } from '../types'
 import type { WebAuthnAssertionOptions } from '@/lib/webauthn'
 import type { ProfileEntity, AccountEntity, LoginRequest, LoginResponse, MFALoginVerifyRequest, LogoutResponse, RegisterRequest, RegisterResponse, RegisterInviteRequest, RegisterInviteQueryParams, CreateProfileRequest, CreateProfileResponse, ForgotPasswordRequest, ForgotPasswordResponse, ResetPasswordRequest, ResetPasswordResponse, ResetPasswordQueryParams, ProfileResponse } from './types'
-import { requireClientId } from '@/utils/clientContext'
+import { appendPublicAuthContext, publicAuthQuery, type PublicAuthContext } from '@/utils/clientContext'
 
 type AccountResponse = ApiResponse<AccountEntity>
 
@@ -20,7 +20,7 @@ type AccountResponse = ApiResponse<AccountEntity>
  * @returns Promise<LoginResponse>
  */
 export async function login(data: LoginRequest): Promise<LoginResponse> {
-	const endpoint = `${API_ENDPOINTS.AUTH.LOGIN}?client_id=${encodeURIComponent(requireClientId())}`
+	const endpoint = `${API_ENDPOINTS.AUTH.LOGIN}?${publicAuthQuery()}`
 	const response = await post<LoginResponse>(
 		endpoint,
 		data,
@@ -38,26 +38,25 @@ export async function login(data: LoginRequest): Promise<LoginResponse> {
  */
 export async function verifyMFALogin(
   data: MFALoginVerifyRequest,
-  _tenantId?: string,
+  tenantId?: string,
   clientId?: string,
 ): Promise<LoginResponse> {
-  let endpoint = API_ENDPOINTS.AUTH.LOGIN_MFA_VERIFY
-  endpoint += `?client_id=${encodeURIComponent(clientId || requireClientId())}`
+  const endpoint = `${API_ENDPOINTS.AUTH.LOGIN_MFA_VERIFY}?${publicAuthQuery({ tenantId, clientId })}`
   return post<LoginResponse>(endpoint, data, {
     headers: { ...TOKEN_DELIVERY_HEADER },
   })
 }
 
 /** Send an SMS OTP for the in-flight login MFA challenge. */
-export async function sendMFALoginSMS(challengeToken: string): Promise<void> {
-  await post<ApiResponse<void>>(API_ENDPOINTS.AUTH.LOGIN_MFA_SEND_SMS, {
+export async function sendMFALoginSMS(challengeToken: string, context?: PublicAuthContext): Promise<void> {
+  await post<ApiResponse<void>>(`${API_ENDPOINTS.AUTH.LOGIN_MFA_SEND_SMS}?${publicAuthQuery(context)}`, {
     mfa_challenge_token: challengeToken,
   })
 }
 
 /** Send an Email OTP for the in-flight login MFA challenge. */
-export async function sendMFALoginEmailOtp(challengeToken: string): Promise<void> {
-  await post<ApiResponse<void>>(API_ENDPOINTS.AUTH.LOGIN_MFA_SEND_EMAIL_OTP, {
+export async function sendMFALoginEmailOtp(challengeToken: string, context?: PublicAuthContext): Promise<void> {
+  await post<ApiResponse<void>>(`${API_ENDPOINTS.AUTH.LOGIN_MFA_SEND_EMAIL_OTP}?${publicAuthQuery(context)}`, {
     mfa_challenge_token: challengeToken,
   }, { headers: TOKEN_DELIVERY_HEADER })
 }
@@ -70,14 +69,11 @@ export async function verifyMagicLink(queryString: string): Promise<LoginRespons
 
 export interface SendMagicLinkContext {
   clientId?: string
+  tenantId?: string
 }
 
 export async function sendMagicLink(email: string, context: SendMagicLinkContext = {}): Promise<void> {
-  const params = new URLSearchParams()
-
-  params.set('client_id', context.clientId || requireClientId())
-
-  const query = params.toString()
+  const query = publicAuthQuery(context)
   const endpoint = `${API_ENDPOINTS.AUTH.MAGIC_LINK_SEND}${query ? `?${query}` : ''}`
   const response = await post<ApiResponse<unknown>>(endpoint, { email })
   if (!response.success) {
@@ -86,8 +82,8 @@ export async function sendMagicLink(email: string, context: SendMagicLinkContext
 }
 
 /** Begin a passkey assertion ceremony for the in-flight login MFA challenge. */
-export async function beginMFALoginWebAuthn(challengeToken: string): Promise<WebAuthnAssertionOptions> {
-  const r = await post<ApiResponse<WebAuthnAssertionOptions>>(API_ENDPOINTS.AUTH.LOGIN_MFA_WEBAUTHN_BEGIN, {
+export async function beginMFALoginWebAuthn(challengeToken: string, context?: PublicAuthContext): Promise<WebAuthnAssertionOptions> {
+  const r = await post<ApiResponse<WebAuthnAssertionOptions>>(`${API_ENDPOINTS.AUTH.LOGIN_MFA_WEBAUTHN_BEGIN}?${publicAuthQuery(context)}`, {
     mfa_challenge_token: challengeToken,
   })
   if (!r.success || !r.data) {
@@ -99,6 +95,7 @@ export async function beginMFALoginWebAuthn(challengeToken: string): Promise<Web
 // Extended register request with optional query parameters
 export interface RegisterServiceRequest extends Omit<RegisterRequest, 'username'> {
   clientId?: string
+  tenantId?: string
 }
 
 /**
@@ -119,7 +116,7 @@ export async function register(data: RegisterServiceRequest): Promise<RegisterRe
   let endpoint = API_ENDPOINTS.AUTH.REGISTER
   const queryParams = new URLSearchParams()
 
-  queryParams.append('client_id', data.clientId || requireClientId())
+  appendPublicAuthContext(queryParams, { clientId: data.clientId, tenantId: data.tenantId })
 
   if (queryParams.toString()) {
     endpoint += `?${queryParams.toString()}`
@@ -152,7 +149,10 @@ export async function registerInvite(
   if (queryParams.auth_flow) {
     params.append('auth_flow', queryParams.auth_flow)
   }
-  params.append('client_id', queryParams.client_id || requireClientId())
+  appendPublicAuthContext(params, {
+    clientId: queryParams.client_id,
+    tenantId: queryParams.tenant_id,
+  })
 
   const url = `${API_ENDPOINTS.AUTH.REGISTER_INVITE}?${params.toString()}`
 
@@ -253,7 +253,7 @@ export async function fetchAccount(): Promise<AccountEntity | null> {
  */
 export async function forgotPassword(data: ForgotPasswordRequest): Promise<ForgotPasswordResponse> {
   const response = await post<ForgotPasswordResponse>(
-    `${API_ENDPOINTS.AUTH.FORGOT_PASSWORD}?client_id=${encodeURIComponent(requireClientId())}`,
+    `${API_ENDPOINTS.AUTH.FORGOT_PASSWORD}?${publicAuthQuery()}`,
     data
   )
   return response
@@ -270,11 +270,13 @@ export async function resetPassword(
   queryParams: ResetPasswordQueryParams
 ): Promise<ResetPasswordResponse> {
   // Build URL with query parameters
-  const params = new URLSearchParams({
-    client_id: queryParams.client_id,
+  const params = appendPublicAuthContext(new URLSearchParams({
     expires: queryParams.expires,
     sig: queryParams.sig,
     token: queryParams.token
+  }), {
+    clientId: queryParams.client_id,
+    tenantId: queryParams.tenant_id,
   })
 
   const url = `${API_ENDPOINTS.AUTH.RESET_PASSWORD}?${params.toString()}`
