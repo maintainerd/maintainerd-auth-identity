@@ -34,6 +34,38 @@ const axiosInstance = axios.create({
   withCredentials: true, // Include cookies for authentication
 })
 
+// CSRF (double-submit cookie). The backend protects cookie-auth state-changing
+// routes (profile, account, user-settings, mfa, federation) with CSRFMiddleware:
+// it issues a JS-readable `__Host-csrf` cookie on safe requests and requires the
+// same value echoed in the `X-CSRF-Token` header on unsafe ones. axios' built-in
+// XSRF support uses different cookie/header names, so we wire it explicitly.
+const CSRF_COOKIE_NAME = '__Host-csrf'
+const CSRF_HEADER_NAME = 'X-CSRF-Token'
+const CSRF_SAFE_METHODS = new Set(['get', 'head', 'options', 'trace'])
+
+function readCsrfToken(): string | null {
+  const cookies = document.cookie ? document.cookie.split('; ') : []
+  for (const cookie of cookies) {
+    const eq = cookie.indexOf('=')
+    if (eq !== -1 && cookie.slice(0, eq) === CSRF_COOKIE_NAME) {
+      return decodeURIComponent(cookie.slice(eq + 1))
+    }
+  }
+  return null
+}
+
+axiosInstance.interceptors.request.use((config) => {
+  const method = (config.method ?? 'get').toLowerCase()
+  if (!CSRF_SAFE_METHODS.has(method)) {
+    const token = readCsrfToken()
+    if (token) {
+      config.headers = config.headers ?? {}
+      config.headers[CSRF_HEADER_NAME] = token
+    }
+  }
+  return config
+})
+
 // Endpoints where a 401 means a genuine credential failure (not an expired
 // session), so we must NOT attempt a token refresh — including the refresh
 // endpoint itself, to avoid an infinite loop.

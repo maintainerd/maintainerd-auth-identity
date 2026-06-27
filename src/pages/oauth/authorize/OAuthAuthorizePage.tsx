@@ -14,6 +14,23 @@ export default function OAuthAuthorizePage() {
   const [error, setError] = useState<string | null>(null)
   const startedRef = useRef(false)
 
+  const postSilentResult = (message: { redirect_uri?: string; error?: string }): boolean => {
+    if (searchParams.get('prompt') !== 'none' || window.parent === window) return false
+    const redirectURI = searchParams.get('redirect_uri')
+    if (!redirectURI) return false
+    try {
+      const targetOrigin = new URL(redirectURI).origin
+      window.parent.postMessage({
+        type: 'maintainerd:oauth:silent',
+        state: searchParams.get('state') || '',
+        ...message,
+      }, targetOrigin)
+      return true
+    } catch {
+      return false
+    }
+  }
+
   useEffect(() => {
     if (startedRef.current) return
     startedRef.current = true
@@ -22,15 +39,19 @@ export default function OAuthAuthorizePage() {
       try {
         const result = await authorizeOAuth(normalizeOAuthAuthorizeSearch(searchParams.toString()))
         if (result.redirect_uri) {
+          if (postSilentResult({ redirect_uri: result.redirect_uri })) return
           window.location.assign(result.redirect_uri)
           return
         }
         if (result.consent_challenge) {
+          if (postSilentResult({ error: 'consent_required' })) return
           navigate(`/oauth/consent/${encodeURIComponent(result.consent_challenge)}`, { replace: true })
           return
         }
         setError('Authorization could not continue.')
       } catch (err) {
+        const errorCode = err instanceof Error ? err.message : 'authorization_failed'
+        if (postSilentResult({ error: errorCode })) return
         if (err instanceof Error && err.message === 'login_required') {
           navigate(oauthLoginRoute(window.location.pathname, window.location.search, currentTenant?.identifier), { replace: true })
           return

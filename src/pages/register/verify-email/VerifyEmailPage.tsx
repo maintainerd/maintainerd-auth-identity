@@ -45,7 +45,7 @@ export default function VerifyEmailPage() {
   const onSubmit = async (data: FormData) => {
     setError(null)
     try {
-      await post('/email-verification/verify', { email, otp: data.code })
+      await post(`/email-verification/verify?${publicAuthQuery()}`, { email, otp: data.code })
 
       // Active sign-up session: continue to profile registration / login-success
       // without forcing a re-login. Otherwise (verified from a login redirect
