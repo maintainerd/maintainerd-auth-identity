@@ -66,7 +66,7 @@ const LoginForm = () => {
   const oauthAuthorizeTarget = useMemo(() => oauthAuthorizeTargetFromLoginParams(searchParams), [searchParams])
   const shouldLoadConnections = Boolean(clientId && oauthAuthorizeTarget)
   const loginSchema = buildLoginSchema()
-  const showSignUp = currentTenant?.registration_config?.self_registration_enabled !== false
+  const showSignUp = shouldLoadConnections ? connections?.registration_enabled !== false : currentTenant?.registration_config?.self_registration_enabled !== false
   const passwordEnabled = shouldLoadConnections ? connections?.password_enabled === true : true
   const providerConnections = shouldLoadConnections ? connections?.connections ?? [] : []
   const isLoadingConnections = shouldLoadConnections && !connections && !connectionsError

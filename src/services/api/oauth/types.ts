@@ -14,6 +14,7 @@ export interface OAuthConnection {
 
 export interface OAuthConnections {
   password_enabled: boolean
+  registration_enabled: boolean
   connections: OAuthConnection[]
 }
 
