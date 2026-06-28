@@ -661,7 +661,7 @@ The backend's `security.yml` runs **CodeQL · Semgrep · Snyk · Gitleaks** on e
 - [x] `docs/checklist.md` — *this file*.
 - [x] `README.md` aligned with backend visual style.
 - [x] `CODE_OF_CONDUCT.md`.
-- [x] `LICENSE.md` (Apache License 2.0).
+- [x] `LICENSE` (Apache License 2.0) and `NOTICE` (original-creator attribution).
 - [ ] 🟡 `CONTRIBUTING.md` — branch naming, Conventional Commits, PR template, the conventions in §1 / §2 / §15.
 - [ ] 🟡 `SECURITY.md` — vulnerability reporting policy, links to backend security policy, supported versions.
 - [ ] 🟡 `.github/PULL_REQUEST_TEMPLATE.md` — checkbox list referencing this checklist where relevant.

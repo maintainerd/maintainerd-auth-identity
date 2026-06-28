@@ -2,6 +2,10 @@
   "name": "maintainerd-auth-identity",
   "private": true,
   "version": "0.0.0",
+  "author": {
+    "name": "Reyco Seguma",
+    "url": "https://github.com/xreyc"
+  },
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {

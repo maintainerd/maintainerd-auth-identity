@@ -223,7 +223,7 @@ After P1-5, add a bundle-size check in CI (e.g. `rollup-plugin-visualizer` + siz
 `components/ui/*` (shadcn) and shared components have no isolated docs; Storybook would also host the mock data evicted in P1-6.
 
 ### P3-5 · CONTRIBUTING / PR template / CODEOWNERS · `S` · *Governance*
-`CODE_OF_CONDUCT.md` and `LICENSE.md` exist; add `CONTRIBUTING.md`, PR/issue templates, and `CODEOWNERS`.
+`CODE_OF_CONDUCT.md`, `LICENSE`, and `NOTICE` exist; add `CONTRIBUTING.md`, PR/issue templates, and `CODEOWNERS`.
 
 ---
 
