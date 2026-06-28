@@ -3,6 +3,8 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useTenant } from '@/hooks/useTenant'
 import { resolveGuardRedirect } from '@/utils/postAuthRoute'
+import AppLoadingScreen from '@/components/layout/AppLoadingScreen'
+import { useOAuthConnections } from '@/hooks/useOAuthConnections'
 
 /**
  * Single runtime redirect authority. Wraps the whole route tree and, on every
@@ -17,6 +19,12 @@ export function RouteGuard({ children }: { children: ReactNode }) {
   const location = useLocation()
   const { isAuthenticated, account } = useAuth()
   const { currentTenant } = useTenant()
+  const registrationEntry = !isAuthenticated && location.pathname === '/register'
+  const connections = useOAuthConnections(registrationEntry)
+
+  if (registrationEntry && connections.isPending && connections.fetchStatus !== 'idle') {
+    return <AppLoadingScreen branding={currentTenant?.branding} />
+  }
 
   const target = resolveGuardRedirect({
     pathname: location.pathname,
@@ -24,6 +32,8 @@ export function RouteGuard({ children }: { children: ReactNode }) {
     isAuthenticated,
     account,
     tenant: currentTenant,
+    registrationEnabled: connections.data?.registration_enabled,
+    verificationRequired: connections.data?.verification_required,
   })
 
   if (target && target !== location.pathname) {

@@ -67,4 +67,21 @@ describe('resolveGuardRedirect OAuth broker routing', () => {
       search: '',
     })).toBeNull()
   })
+
+  it('blocks direct registration when the client registration gate is disabled', () => {
+    expect(resolveGuardRedirect({
+      ...unauthenticated,
+      pathname: '/register',
+      registrationEnabled: false,
+    })).toBe('/login')
+  })
+
+  it('routes unverified accounts through verification when the client flow requires it', () => {
+    expect(resolveGuardRedirect({
+      ...authenticated,
+      account: { ...authenticated.account, email_verified: false },
+      pathname: '/register/profile',
+      verificationRequired: true,
+    })).toBe('/email-verification')
+  })
 })

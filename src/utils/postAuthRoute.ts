@@ -49,12 +49,13 @@ export function loginSuccessRoute(): string {
 export function resolvePostAuthRoute(
   account: AccountEntity | null | undefined,
   tenant?: TenantEntity | null,
+  registration?: { verificationRequired?: boolean },
 ): string {
   if (!account) {
     return REGISTER_PROFILE_ROUTE
   }
 
-  if (tenant?.registration_config?.require_email_verification && !account.email_verified) {
+  if ((tenant?.registration_config?.require_email_verification || registration?.verificationRequired) && !account.email_verified) {
     return VERIFY_EMAIL_ROUTE
   }
 
@@ -71,6 +72,8 @@ export interface GuardContext {
   isAuthenticated: boolean
   account: AccountEntity | null | undefined
   tenant: TenantEntity | null | undefined
+  registrationEnabled?: boolean
+  verificationRequired?: boolean
 }
 
 /**
@@ -86,13 +89,13 @@ export interface GuardContext {
  * (otherwise account/tenant are not yet known).
  */
 export function resolveGuardRedirect(ctx: GuardContext): string | null {
-  const { pathname, search = '', isAuthenticated, account, tenant } = ctx
+  const { pathname, search = '', isAuthenticated, account, tenant, registrationEnabled, verificationRequired } = ctx
 
   if (pathname === NO_ACCESS_ROUTE || pathname === SERVICE_UNAVAILABLE_ROUTE || pathname.startsWith('/setup')) {
     return null
   }
 
-  const home = isAuthenticated ? resolvePostAuthRoute(account, tenant) : LOGIN_ROUTE
+  const home = isAuthenticated ? resolvePostAuthRoute(account, tenant, { verificationRequired }) : LOGIN_ROUTE
 
   if (pathname === '/') {
     return home
@@ -101,7 +104,7 @@ export function resolveGuardRedirect(ctx: GuardContext): string | null {
   if (
     pathname === REGISTER_ROUTE &&
     !isAuthenticated &&
-    tenant?.registration_config?.self_registration_enabled === false
+    (registrationEnabled === false || tenant?.registration_config?.self_registration_enabled === false)
   ) {
     return LOGIN_ROUTE
   }

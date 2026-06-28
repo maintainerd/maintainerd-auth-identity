@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, type Resolver } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
-import { useNavigate, Link } from "react-router-dom"
+import { useNavigate, Link, useSearchParams } from "react-router-dom"
 import { AlertCircle } from "lucide-react"
 import { FormSubmitButton, FormInputField, FormPasswordField, PasswordRequirements } from "@/components/form"
 import { FieldGroup } from "@/components/ui/field"
@@ -10,18 +10,29 @@ import { useAuth } from "@/hooks/useAuth"
 import { useTenant } from "@/hooks/useTenant"
 import { useToast } from "@/hooks/useToast"
 import { resolvePostAuthRoute } from "@/utils/postAuthRoute"
+import { useOAuthConnections } from "@/hooks/useOAuthConnections"
+
+const EMPTY_REQUIRED_FIELDS: string[] = []
 
 const RegisterForm = () => {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { register: registerUser, refreshAccount } = useAuth()
   const { getCurrentTenant } = useTenant()
   const { showSuccess } = useToast()
   const [registerError, setRegisterError] = useState<string | null>(null)
+  const connections = useOAuthConnections()
+  const requiredFields = connections.data?.required_fields ?? EMPTY_REQUIRED_FIELDS
+  const requireFullname = requiredFields.includes('fullname')
+  const requirePhone = requiredFields.includes('phone')
 
   // Password rules follow the tenant policy, so build the schema from the
   // tenant's password_config (same source the live checklist below reads).
   const passwordConfig = getCurrentTenant()?.password_config
-  const registerSchema = useMemo(() => buildRegisterSchema(passwordConfig), [passwordConfig])
+  const registerSchema = useMemo(
+    () => buildRegisterSchema(passwordConfig, requiredFields),
+    [passwordConfig, requiredFields],
+  )
 
   const {
     register,
@@ -29,9 +40,11 @@ const RegisterForm = () => {
     watch,
     formState: { errors, isSubmitting }
   } = useForm<RegisterFormData>({
-    resolver: yupResolver(registerSchema),
+    resolver: yupResolver(registerSchema) as Resolver<RegisterFormData>,
     defaultValues: {
       email: "",
+      fullname: "",
+      phone: "",
       password: "",
       confirmPassword: ""
     },
@@ -52,7 +65,7 @@ const RegisterForm = () => {
     setRegisterError(null)
     try {
       const fallbackName = data.email.split('@')[0] || 'User'
-      await registerUser(fallbackName, data.email, data.password)
+      await registerUser(data.fullname?.trim() || fallbackName, data.email, data.password, data.phone?.trim() || undefined)
 
       localStorage.setItem('register_email', data.email)
       showSuccess('Account created successfully!')
@@ -62,7 +75,9 @@ const RegisterForm = () => {
       // login-success). This keeps the user in a single authenticated session
       // through the rest of the sign-up flow.
       const account = await refreshAccount()
-      navigate(resolvePostAuthRoute(account, getCurrentTenant()), { replace: true })
+      navigate(resolvePostAuthRoute(account, getCurrentTenant(), {
+        verificationRequired: connections.data?.verification_required,
+      }), { replace: true })
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Registration failed. Please try again."
       setRegisterError(errorMessage)
@@ -99,6 +114,29 @@ const RegisterForm = () => {
             required
             {...register("email")}
           />
+          {requireFullname && (
+            <FormInputField
+              label="Full name"
+              placeholder="Your full name"
+              autoComplete="name"
+              disabled={isSubmitting}
+              error={errors.fullname?.message}
+              required
+              {...register("fullname")}
+            />
+          )}
+          {requirePhone && (
+            <FormInputField
+              label="Phone"
+              type="tel"
+              placeholder="+1 212 555 1234"
+              autoComplete="tel"
+              disabled={isSubmitting}
+              error={errors.phone?.message}
+              required
+              {...register("phone")}
+            />
+          )}
           <div className="flex flex-col gap-2">
             <FormPasswordField
               label="Password"
@@ -131,7 +169,7 @@ const RegisterForm = () => {
 
       <div className="text-center text-sm text-muted-foreground">
         Already have an account?{" "}
-        <Link to="/login" className="font-medium text-primary underline-offset-4 hover:underline">
+        <Link to={{ pathname: "/login", search: searchParams.toString() }} className="font-medium text-primary underline-offset-4 hover:underline">
           Sign in
         </Link>
       </div>

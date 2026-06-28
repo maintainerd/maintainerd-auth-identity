@@ -41,6 +41,9 @@ describe('oauth api', () => {
       success: true,
       data: {
         password_enabled: true,
+        registration_enabled: true,
+        verification_required: false,
+        required_fields: ['email'],
         connections: [
           {
             identifier: 'google',
@@ -57,6 +60,7 @@ describe('oauth api', () => {
     const result = await fetchOAuthConnections('external/client')
 
     expect(result.connections[0].identifier).toBe('google')
+    expect(result.registration_enabled).toBe(true)
     expect(get).toHaveBeenCalledWith('/oauth/connections?client_id=external%2Fclient')
   })
 
