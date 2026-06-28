@@ -25,14 +25,44 @@ export interface PasswordConfigPublic {
   require_symbol: boolean
 }
 
+export interface BrandingColors {
+  primary?: string
+  secondary?: string
+  accent?: string
+  appBackground?: string
+  topPanelBackground?: string
+  sidePanelBackground?: string
+  cardBackground?: string
+  textPrimary?: string
+  textMuted?: string
+  border?: string
+}
+
+export interface BrandingFont {
+  family?: string
+}
+
+export interface BrandingMetadata {
+  colors?: BrandingColors
+  font?: BrandingFont
+  /** Optional future override; appBackground remains the current console token. */
+  background?: string
+  /** Optional CSS gradient used ahead of background/appBackground when present. */
+  gradient?: string
+  [key: string]: unknown
+}
+
+export type BrandingLayout = 'centered' | 'full_page' | 'split'
+
 export interface BrandingPublic {
+  layout: BrandingLayout
   company_name: string
   logo_url: string
   favicon_url: string
   support_url: string
   privacy_policy_url: string
   terms_of_service_url: string
-  metadata: Record<string, unknown>
+  metadata: BrandingMetadata | null
 }
 
 /**

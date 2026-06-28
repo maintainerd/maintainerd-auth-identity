@@ -38,5 +38,6 @@ tsconfig.tsbuildinfo
 .claude/
 .codex/
 .opencode/
+graphify-out/
 AGENTS.md
 CLAUDE.md

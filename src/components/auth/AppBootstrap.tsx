@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useTenant } from '@/hooks/useTenant'
@@ -8,6 +8,7 @@ import { RouteGuard } from './RouteGuard'
 import { fetchPublicClient } from '@/services/api/public-client'
 import { rememberPublicAuthContext } from '@/utils/clientContext'
 import { isOAuthInteractionRoute } from '@/utils/oauthRedirect'
+import { applyBranding, getBrandingBackground } from '@/utils/branding'
 
 /**
  * App initialization gate.
@@ -28,6 +29,18 @@ export function AppBootstrap({ children }: { children: ReactNode }) {
   const authStartedRef = useRef(false)
   const lastTenantIdentifierRef = useRef<string | null | undefined>(undefined)
   const [tenantSettled, setTenantSettled] = useState(false)
+
+  // Tenant branding is a document-level concern: every auth route consumes the
+  // same semantic CSS tokens, and cleanup prevents one tenant's theme leaking
+  // into the next tenant after an in-app context switch.
+  useLayoutEffect(() => {
+    const metadata = currentTenant?.branding?.metadata
+    return applyBranding(
+      metadata?.colors,
+      metadata?.font,
+      getBrandingBackground(metadata),
+    )
+  }, [currentTenant?.branding?.metadata])
 
   // Initialize auth once on mount (fetches /account if a session cookie exists).
   useEffect(() => {

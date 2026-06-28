@@ -17,11 +17,7 @@ const AppLoadingScreen = ({ branding }: Props) => {
 
   return (
     <div className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-4">
-      {/* Same calm gradient backdrop as the login layout. */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{ background: 'linear-gradient(180deg, #f7f9fc 0%, #eef2f8 55%, #e4ebf6 100%)' }}
-      />
+      <div className="auth-page-background pointer-events-none absolute inset-0" />
 
       <div className="relative z-10 flex flex-col items-center gap-6 text-center">
         {logoUrl ? (
@@ -29,7 +25,7 @@ const AppLoadingScreen = ({ branding }: Props) => {
         ) : (
           <MaintainedAuthIcon width={56} height={56} />
         )}
-        <div className="flex items-center gap-2 text-slate-500">
+        <div className="text-muted-foreground flex items-center gap-2">
           <Loader2 className="size-4 animate-spin" />
           <span className="text-sm">Loading…</span>
         </div>
