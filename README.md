@@ -197,7 +197,7 @@ npm run build    # type-check + production build
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
+Apache License 2.0 — see [LICENSE.md](LICENSE.md) for details.
 
 ---
 
