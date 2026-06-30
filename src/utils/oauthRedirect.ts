@@ -1,4 +1,5 @@
 const OAUTH_RETURN_KEY = 'maintainerd_auth_oauth_return_to'
+const INVITE_CALLBACK_KEY = 'maintainerd_auth_invite_callback'
 const AUTHORIZE_ROUTES = ['/authorize', '/oauth/authorize']
 const BROKER_HINT_PARAMS = ['idp_hint', 'provider_hint', 'identity_provider', 'connection']
 
@@ -85,4 +86,31 @@ export function oauthLoginRoute(pathname: string, search: string, tenantIdentifi
   rememberOAuthReturnTo(current)
   const query = params.toString()
   return query ? `/login?${query}` : '/login'
+}
+
+function safeExternalRedirect(url: string | null | undefined): string | null {
+  if (!url || !url.startsWith('https://')) return null
+  try {
+    const parsed = new URL(url)
+    if (parsed.protocol !== 'https:') return null
+    return url
+  } catch {
+    return null
+  }
+}
+
+export function rememberInviteCallback(url: string | null | undefined): string | null {
+  const safe = safeExternalRedirect(url)
+  if (safe) sessionStorage.setItem(INVITE_CALLBACK_KEY, safe)
+  return safe
+}
+
+export function consumeInviteCallback(): string | null {
+  const value = sessionStorage.getItem(INVITE_CALLBACK_KEY)
+  sessionStorage.removeItem(INVITE_CALLBACK_KEY)
+  return safeExternalRedirect(value)
+}
+
+export function clearInviteCallback(): void {
+  sessionStorage.removeItem(INVITE_CALLBACK_KEY)
 }

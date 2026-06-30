@@ -9,6 +9,8 @@ import { fetchPublicClient } from '@/services/api/public-client'
 import { rememberPublicAuthContext } from '@/utils/clientContext'
 import { isOAuthInteractionRoute } from '@/utils/oauthRedirect'
 import { applyBranding, getBrandingBackground } from '@/utils/branding'
+import { fetchOAuthConnections } from '@/services/api/oauth'
+import type { BrandingPublic } from '@/services/api/tenants/types'
 
 /**
  * App initialization gate.
@@ -29,18 +31,20 @@ export function AppBootstrap({ children }: { children: ReactNode }) {
   const authStartedRef = useRef(false)
   const lastTenantIdentifierRef = useRef<string | null | undefined>(undefined)
   const [tenantSettled, setTenantSettled] = useState(false)
+  const [clientBranding, setClientBranding] = useState<BrandingPublic | null>(null)
 
   // Tenant branding is a document-level concern: every auth route consumes the
   // same semantic CSS tokens, and cleanup prevents one tenant's theme leaking
   // into the next tenant after an in-app context switch.
   useLayoutEffect(() => {
-    const metadata = currentTenant?.branding?.metadata
+    const resolvedBranding = clientBranding ?? currentTenant?.branding
+    const metadata = resolvedBranding?.metadata
     return applyBranding(
       metadata?.colors,
       metadata?.font,
       getBrandingBackground(metadata),
     )
-  }, [currentTenant?.branding?.metadata])
+  }, [clientBranding, currentTenant?.branding])
 
   // Initialize auth once on mount (fetches /account if a session cookie exists).
   useEffect(() => {
@@ -56,15 +60,27 @@ export function AppBootstrap({ children }: { children: ReactNode }) {
   useEffect(() => {
     const run = async () => {
       const { clientId, tenantId } = rememberPublicAuthContext(location.search)
+      setClientBranding(null)
       if (!clientId && !tenantId) {
         setTenantSettled(true)
         return
       }
       try {
         const tenantIdentifier = tenantId || (await fetchPublicClient(clientId!)).tenant_id
-        if (lastTenantIdentifierRef.current === tenantIdentifier) return
-        lastTenantIdentifierRef.current = tenantIdentifier
-        await initializeTenant(tenantIdentifier)
+        if (lastTenantIdentifierRef.current !== tenantIdentifier) {
+          lastTenantIdentifierRef.current = tenantIdentifier
+          await initializeTenant(tenantIdentifier)
+        }
+        if (clientId) {
+          try {
+            const connections = await fetchOAuthConnections(clientId)
+            setClientBranding(connections.branding
+              ? { ...connections.branding, layout: connections.branding.layout as BrandingPublic['layout'] }
+              : null)
+          } catch {
+            setClientBranding(null)
+          }
+        }
       } catch {
         /* discovery or tenant initialization failed */
       } finally {

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -5,12 +6,32 @@ import LoginLayout from '@/components/layout/LoginLayout'
 import { useAuth } from '@/hooks/useAuth'
 import { useTenant } from '@/hooks/useTenant'
 import { useToast } from '@/hooks/useToast'
+import { consumeOAuthReturnTo, consumeInviteCallback } from '@/utils/oauthRedirect'
 
 export default function LoginSuccessPage() {
   const navigate = useNavigate()
   const { logout } = useAuth()
   const { currentTenant } = useTenant()
   const { showError } = useToast()
+  const redirectedRef = useRef(false)
+
+  useEffect(() => {
+    if (redirectedRef.current) return
+
+    const oauthReturnTo = consumeOAuthReturnTo()
+    if (oauthReturnTo) {
+      redirectedRef.current = true
+      navigate(oauthReturnTo, { replace: true })
+      return
+    }
+
+    const inviteCallback = consumeInviteCallback()
+    if (inviteCallback) {
+      redirectedRef.current = true
+      window.location.assign(inviteCallback)
+      return
+    }
+  }, [navigate])
 
   const handleLogout = async () => {
     try {

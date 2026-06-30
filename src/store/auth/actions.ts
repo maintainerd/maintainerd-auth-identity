@@ -23,6 +23,7 @@ import type { AccountEntity } from '@/services/api/auth/types'
 export interface RegisterAsyncRequest extends Omit<RegisterRequest, 'username'> {
   clientId?: string
   tenantId?: string
+  registrationFlow?: string
 }
 
 // LoginThunkResult is the shared fulfilled payload for the password and MFA
@@ -95,6 +96,8 @@ export const registerAsync = createAsyncThunk(
 export interface RegisterInviteAsyncRequest {
   username: string
   password: string
+  fullname?: string
+  phone?: string
   queryParams: RegisterInviteQueryParams
 }
 
@@ -103,7 +106,7 @@ export const registerInviteAsync = createAsyncThunk(
   async (data: RegisterInviteAsyncRequest, thunkAPI) => {
     try {
       const response = await authRegisterInvite(
-        { username: data.username, password: data.password },
+        { username: data.username, password: data.password, fullname: data.fullname, phone: data.phone },
         data.queryParams
       )
       return { data: response.data }

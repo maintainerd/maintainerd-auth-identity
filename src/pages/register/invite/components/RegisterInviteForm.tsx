@@ -3,23 +3,29 @@ import { useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import { useNavigate, useSearchParams, Link } from "react-router-dom"
 import { AlertCircle, Mail } from "lucide-react"
-import { FormSubmitButton, FormPasswordField, PasswordRequirements } from "@/components/form"
+import { FormSubmitButton, FormInputField, FormPasswordField, PasswordRequirements } from "@/components/form"
 import { FieldGroup } from "@/components/ui/field"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/useAuth"
 import { useTenant } from "@/hooks/useTenant"
 import { useToast } from "@/hooks/useToast"
-import { resolvePostAuthRoute } from "@/utils/postAuthRoute"
+import { resolvePostAuthRoute, loginSuccessRoute } from "@/utils/postAuthRoute"
+import { rememberOAuthReturnTo, clearOAuthReturnTo, rememberInviteCallback } from "@/utils/oauthRedirect"
+import { fetchInviteContext } from "@/services/api/auth"
 import * as yup from "yup"
 import type { PasswordConfigPublic } from "@/services/api/tenants/types"
 
 interface InviteFormData {
+  fullname: string
+  phone: string
   password: string
   confirmPassword: string
 }
 
 function buildInviteSchema(cfg?: PasswordConfigPublic) {
   return yup.object({
+    fullname: yup.string(),
+    phone: yup.string(),
     password: buildRegisterPassword(cfg),
     confirmPassword: yup
       .string()
@@ -58,8 +64,20 @@ const RegisterInviteForm = () => {
   const { getCurrentTenant } = useTenant()
   const { showSuccess } = useToast()
   const [registerError, setRegisterError] = useState<string | null>(null)
+  const [inviteCallback, setInviteCallback] = useState<string | null>(null)
 
   const invitedEmail = searchParams.get('email') || ''
+  const inviteToken = searchParams.get('invite_token') || ''
+
+  useEffect(() => {
+    if (!inviteToken) return
+    let cancelled = false
+    fetchInviteContext(inviteToken).then((ctx) => {
+      if (cancelled || !ctx?.callback_url) return
+      setInviteCallback(ctx.callback_url)
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [inviteToken])
 
   const passwordConfig = getCurrentTenant()?.password_config
   const inviteSchema = useMemo(() => buildInviteSchema(passwordConfig), [passwordConfig])
@@ -72,6 +90,8 @@ const RegisterInviteForm = () => {
   } = useForm<InviteFormData>({
     resolver: yupResolver(inviteSchema),
     defaultValues: {
+      fullname: "",
+      phone: "",
       password: "",
       confirmPassword: ""
     },
@@ -89,15 +109,33 @@ const RegisterInviteForm = () => {
   const onSubmit = async (data: InviteFormData) => {
     setRegisterError(null)
     try {
-      await registerInvite(invitedEmail, data.password)
+      await registerInvite(invitedEmail, data.password, data.fullname?.trim() || undefined, data.phone?.trim() || undefined)
 
       if (invitedEmail) {
         localStorage.setItem('register_email', invitedEmail)
       }
       showSuccess('Account created successfully!')
 
+      if (inviteCallback) {
+        rememberInviteCallback(inviteCallback)
+      }
+
       const account = await refreshAccount()
-      navigate(resolvePostAuthRoute(account, getCurrentTenant()), { replace: true })
+      const dest = resolvePostAuthRoute(account, getCurrentTenant())
+      if (dest === loginSuccessRoute() && inviteCallback) {
+        const safe = rememberInviteCallback(inviteCallback)
+        if (safe) {
+          window.location.assign(safe)
+          return
+        }
+      }
+      const oauthReturnTo = dest === loginSuccessRoute()
+        ? rememberOAuthReturnTo(searchParams.get('return_to'))
+        : null
+      if (dest === loginSuccessRoute() && !oauthReturnTo) {
+        clearOAuthReturnTo()
+      }
+      navigate(oauthReturnTo || dest, { replace: true })
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Registration failed. Please try again."
       setRegisterError(errorMessage)
@@ -152,6 +190,24 @@ const RegisterInviteForm = () => {
               <span>{invitedEmail}</span>
             </div>
           </div>
+
+          <FormInputField
+            label="Full name"
+            placeholder="Your full name"
+            autoComplete="name"
+            disabled={isSubmitting}
+            error={errors.fullname?.message}
+            {...register("fullname")}
+          />
+          <FormInputField
+            label="Phone"
+            type="tel"
+            placeholder="+1 212 555 1234"
+            autoComplete="tel"
+            disabled={isSubmitting}
+            error={errors.phone?.message}
+            {...register("phone")}
+          />
 
           <div className="flex flex-col gap-2">
             <FormPasswordField

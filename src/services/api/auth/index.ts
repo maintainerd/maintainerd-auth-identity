@@ -96,6 +96,7 @@ export async function beginMFALoginWebAuthn(challengeToken: string, context?: Pu
 export interface RegisterServiceRequest extends Omit<RegisterRequest, 'username'> {
   clientId?: string
   tenantId?: string
+  registrationFlow?: string
 }
 
 /**
@@ -118,6 +119,10 @@ export async function register(data: RegisterServiceRequest): Promise<RegisterRe
 
   appendPublicAuthContext(queryParams, { clientId: data.clientId, tenantId: data.tenantId })
 
+  if (data.registrationFlow) {
+    queryParams.set('registration_flow', data.registrationFlow)
+  }
+
   if (queryParams.toString()) {
     endpoint += `?${queryParams.toString()}`
   }
@@ -134,8 +139,9 @@ export async function register(data: RegisterServiceRequest): Promise<RegisterRe
 
 /**
  * Register a new user via invite token (signed URL flow).
- * The query params carry the signed invite token, expiration, signature,
- * auth flow identifier, and invited email.
+ * The query params carry only the signed invite token, expiration, signature,
+ * and public auth context. The backend resolves the invited email, optional
+ * registration flow, roles, and callback from the signed/stored invite.
  */
 export async function registerInvite(
   data: RegisterInviteRequest,
@@ -146,9 +152,6 @@ export async function registerInvite(
     expires: queryParams.expires,
     sig: queryParams.sig,
   })
-  if (queryParams.auth_flow) {
-    params.append('auth_flow', queryParams.auth_flow)
-  }
   appendPublicAuthContext(params, {
     clientId: queryParams.client_id,
     tenantId: queryParams.tenant_id,
@@ -269,7 +272,6 @@ export async function resetPassword(
   data: ResetPasswordRequest,
   queryParams: ResetPasswordQueryParams
 ): Promise<ResetPasswordResponse> {
-  // Build URL with query parameters
   const params = appendPublicAuthContext(new URLSearchParams({
     expires: queryParams.expires,
     sig: queryParams.sig,
@@ -283,6 +285,24 @@ export async function resetPassword(
 
   const response = await post<ResetPasswordResponse>(url, data)
   return response
+}
+
+export interface InviteContextResponse {
+  invite_token: string
+  email: string
+  callback_url?: string | null
+  expires_at?: string | null
+  status: string
+}
+
+export async function fetchInviteContext(inviteToken: string): Promise<InviteContextResponse | null> {
+  try {
+    const response = await get<ApiResponse<InviteContextResponse>>(`/invite?invite_token=${encodeURIComponent(inviteToken)}`)
+    if (response.success && response.data) return response.data
+    return null
+  } catch {
+    return null
+  }
 }
 
 // Export functions as an object for backward compatibility

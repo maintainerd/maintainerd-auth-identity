@@ -63,6 +63,8 @@ const LoginForm = () => {
   const currentTenant = getCurrentTenant()
   const clientId = searchParams.get('client_id') || undefined
   const tenantId = searchParams.get('tenant_id') || undefined
+  const screenHint = searchParams.get('screen_hint') || undefined
+  const registrationFlow = searchParams.get('registration_flow') || undefined
   const oauthAuthorizeTarget = useMemo(() => oauthAuthorizeTargetFromLoginParams(searchParams), [searchParams])
   const shouldLoadConnections = Boolean(clientId && oauthAuthorizeTarget)
   const loginSchema = buildLoginSchema()
@@ -91,6 +93,22 @@ const LoginForm = () => {
       cancelled = true
     }
   }, [clientId, shouldLoadConnections])
+
+  // screen_hint=signup: redirect to the registration screen, carrying the same
+  // OAuth authorize params so the sign-up flow can resume the authorize request
+  // via /oauth/authorize/continue with the server-persisted request_id.
+  useEffect(() => {
+    if (screenHint === 'signup' && showSignUp) {
+      const requestId = searchParams.get('request_id')
+      if (requestId) {
+        const params = new URLSearchParams(searchParams.toString())
+        params.set('request_id', requestId)
+        navigate({ pathname: '/register', search: params.toString() }, { replace: true })
+      } else {
+        navigate({ pathname: '/register', search: searchParams.toString() }, { replace: true })
+      }
+    }
+  }, [screenHint, showSignUp, navigate, searchParams])
 
   const {
     register,

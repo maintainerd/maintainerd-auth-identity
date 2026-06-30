@@ -15,9 +15,20 @@ export interface OAuthConnection {
 export interface OAuthConnections {
   password_enabled: boolean
   registration_enabled: boolean
-  verification_required: boolean
-  required_fields: string[]
+  branding?: OAuthConnectionsBranding
   connections: OAuthConnection[]
+}
+
+export interface OAuthConnectionsBranding {
+  branding_id: string
+  company_name: string
+  logo_url: string
+  favicon_url: string
+  layout: string
+  support_url: string
+  privacy_policy_url: string
+  terms_of_service_url: string
+  metadata: Record<string, unknown> | null
 }
 
 export interface OAuthConsentChallenge {

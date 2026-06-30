@@ -76,6 +76,7 @@ export function useAuth() {
   ) => {
     const clientId = searchParams.get('client_id')
     const tenantId = searchParams.get('tenant_id')
+    const registrationFlow = searchParams.get('registration_flow')
 
     const result = await dispatch(registerAsync({
       fullname,
@@ -84,30 +85,33 @@ export function useAuth() {
       phone,
       clientId: clientId || undefined,
       tenantId: tenantId || undefined,
+      registrationFlow: registrationFlow || undefined,
     })).unwrap()
 
     return { data: result.data }
   }, [dispatch, searchParams])
 
   const registerInvite = useCallback(async (
-    username: string,
+    email: string,
     password: string,
+    fullname?: string,
+    phone?: string,
   ) => {
     const inviteToken = searchParams.get('invite_token') || ''
     const expires = searchParams.get('expires') || ''
     const sig = searchParams.get('sig') || ''
-    const authFlow = searchParams.get('auth_flow') || undefined
     const inviteClientId = searchParams.get('client_id') || undefined
     const inviteTenantId = searchParams.get('tenant_id') || undefined
 
     const result = await dispatch(registerInviteAsync({
-      username,
+      username: email,
       password,
+      fullname,
+      phone,
       queryParams: {
         invite_token: inviteToken,
         expires,
         sig,
-        auth_flow: authFlow,
         client_id: inviteClientId,
         tenant_id: inviteTenantId,
       }

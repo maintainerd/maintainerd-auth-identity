@@ -116,6 +116,8 @@ export type RegisterResponse = ApiResponse<{
 export interface RegisterInviteRequest {
   username: string
   password: string
+  fullname?: string
+  phone?: string
 }
 
 // RegisterInviteQueryParams — signed query params included in the invite URL
@@ -123,7 +125,6 @@ export interface RegisterInviteQueryParams {
   invite_token: string
   expires: string
   sig: string
-  auth_flow?: string
   email?: string
   client_id?: string
   tenant_id?: string

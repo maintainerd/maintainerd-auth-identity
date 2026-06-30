@@ -9,10 +9,9 @@ import { buildRegisterSchema, type RegisterFormData } from "@/lib/validations"
 import { useAuth } from "@/hooks/useAuth"
 import { useTenant } from "@/hooks/useTenant"
 import { useToast } from "@/hooks/useToast"
-import { resolvePostAuthRoute } from "@/utils/postAuthRoute"
-import { useOAuthConnections } from "@/hooks/useOAuthConnections"
-
-const EMPTY_REQUIRED_FIELDS: string[] = []
+import { resolvePostAuthRoute, loginSuccessRoute } from "@/utils/postAuthRoute"
+import { rememberOAuthReturnTo, clearOAuthReturnTo } from "@/utils/oauthRedirect"
+import { continueOAuth } from "@/services/api/oauth"
 
 const RegisterForm = () => {
   const navigate = useNavigate()
@@ -21,17 +20,13 @@ const RegisterForm = () => {
   const { getCurrentTenant } = useTenant()
   const { showSuccess } = useToast()
   const [registerError, setRegisterError] = useState<string | null>(null)
-  const connections = useOAuthConnections()
-  const requiredFields = connections.data?.required_fields ?? EMPTY_REQUIRED_FIELDS
-  const requireFullname = requiredFields.includes('fullname')
-  const requirePhone = requiredFields.includes('phone')
+  const registrationFlow = searchParams.get("registration_flow") || undefined
 
-  // Password rules follow the tenant policy, so build the schema from the
-  // tenant's password_config (same source the live checklist below reads).
+  // Password rules follow the tenant policy.
   const passwordConfig = getCurrentTenant()?.password_config
   const registerSchema = useMemo(
-    () => buildRegisterSchema(passwordConfig, requiredFields),
-    [passwordConfig, requiredFields],
+    () => buildRegisterSchema(passwordConfig),
+    [passwordConfig],
   )
 
   const {
@@ -64,20 +59,42 @@ const RegisterForm = () => {
   const onSubmit = async (data: RegisterFormData) => {
     setRegisterError(null)
     try {
+      const requestId = searchParams.get('request_id')
       const fallbackName = data.email.split('@')[0] || 'User'
       await registerUser(data.fullname?.trim() || fallbackName, data.email, data.password, data.phone?.trim() || undefined)
 
       localStorage.setItem('register_email', data.email)
       showSuccess('Account created successfully!')
 
+      if (requestId) {
+        try {
+          const result = await continueOAuth(requestId)
+          if (result.redirect_uri) {
+            window.location.assign(result.redirect_uri)
+            return
+          }
+          if (result.consent_challenge) {
+            navigate(`/oauth/consent/${encodeURIComponent(result.consent_challenge)}`, { replace: true })
+            return
+          }
+        } catch {
+          // fall through to normal post-auth routing
+        }
+      }
+
       // Registration issues an httpOnly session cookie, so sync the auth state
       // and route based on the live account (email verification → profile →
       // login-success). This keeps the user in a single authenticated session
       // through the rest of the sign-up flow.
       const account = await refreshAccount()
-      navigate(resolvePostAuthRoute(account, getCurrentTenant(), {
-        verificationRequired: connections.data?.verification_required,
-      }), { replace: true })
+      const dest = resolvePostAuthRoute(account, getCurrentTenant())
+      const oauthReturnTo = dest === loginSuccessRoute()
+        ? rememberOAuthReturnTo(searchParams.get('return_to'))
+        : null
+      if (dest === loginSuccessRoute() && !oauthReturnTo) {
+        clearOAuthReturnTo()
+      }
+      navigate(oauthReturnTo || dest, { replace: true })
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Registration failed. Please try again."
       setRegisterError(errorMessage)
@@ -114,29 +131,23 @@ const RegisterForm = () => {
             required
             {...register("email")}
           />
-          {requireFullname && (
-            <FormInputField
-              label="Full name"
-              placeholder="Your full name"
-              autoComplete="name"
-              disabled={isSubmitting}
-              error={errors.fullname?.message}
-              required
-              {...register("fullname")}
-            />
-          )}
-          {requirePhone && (
-            <FormInputField
-              label="Phone"
-              type="tel"
-              placeholder="+1 212 555 1234"
-              autoComplete="tel"
-              disabled={isSubmitting}
-              error={errors.phone?.message}
-              required
-              {...register("phone")}
-            />
-          )}
+          <FormInputField
+            label="Full name"
+            placeholder="Your full name"
+            autoComplete="name"
+            disabled={isSubmitting}
+            error={errors.fullname?.message}
+            {...register("fullname")}
+          />
+          <FormInputField
+            label="Phone"
+            type="tel"
+            placeholder="+1 212 555 1234"
+            autoComplete="tel"
+            disabled={isSubmitting}
+            error={errors.phone?.message}
+            {...register("phone")}
+          />
           <div className="flex flex-col gap-2">
             <FormPasswordField
               label="Password"

@@ -29,7 +29,8 @@ export async function authorizeOAuth(queryString: string): Promise<OAuthAuthoriz
 }
 
 export async function fetchOAuthConnections(clientId: string): Promise<OAuthConnections> {
-  const response = await get<ApiResponse<OAuthConnections>>(`${BASE}/connections?client_id=${encodeURIComponent(clientId)}`)
+  const params = new URLSearchParams({ client_id: clientId })
+  const response = await get<ApiResponse<OAuthConnections>>(`${BASE}/connections?${params.toString()}`)
   return unwrap(response, 'fetch OAuth connections')
 }
 
@@ -96,4 +97,11 @@ export function oauthEndSessionURL(queryString: string): string {
   if (!queryString) return `${API_CONFIG.BASE_URL}${BASE}/end_session`
   const query = queryString.startsWith('?') ? queryString : `?${queryString}`
   return `${API_CONFIG.BASE_URL}${BASE}/end_session${query}`
+}
+
+export async function continueOAuth(requestId: string): Promise<OAuthAuthorizeResult> {
+  const response = await post<ApiResponse<OAuthAuthorizeResult>>(`${BASE}/authorize/continue`, {
+    request_id: requestId,
+  })
+  return unwrap(response, 'continue OAuth authorize')
 }

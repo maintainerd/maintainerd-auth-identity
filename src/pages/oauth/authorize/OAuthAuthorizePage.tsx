@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { authorizeOAuth } from '@/services/api/oauth'
 import { useTenant } from '@/hooks/useTenant'
 import { normalizeOAuthAuthorizeSearch, oauthLoginRoute } from '@/utils/oauthRedirect'
+import { ApiError } from '@/services/api/client'
 
 export default function OAuthAuthorizePage() {
   const [searchParams] = useSearchParams()
@@ -53,6 +54,14 @@ export default function OAuthAuthorizePage() {
         const errorCode = err instanceof Error ? err.message : 'authorization_failed'
         if (postSilentResult({ error: errorCode })) return
         if (err instanceof Error && err.message === 'login_required') {
+          const requestId = err instanceof ApiError ? err.requestId : undefined
+          const screenHint = searchParams.get('screen_hint')
+          if (screenHint === 'signup' && requestId) {
+            const params = new URLSearchParams(searchParams.toString())
+            params.set('request_id', requestId)
+            navigate({ pathname: '/register', search: params.toString() }, { replace: true })
+            return
+          }
           navigate(oauthLoginRoute(window.location.pathname, window.location.search, currentTenant?.identifier), { replace: true })
           return
         }

@@ -12,17 +12,19 @@ import './debug' // Import debug utilities in development
 export class ApiError extends Error {
   public status: number
   public code?: string
+  public requestId?: string
   public responseData?: {
     error: string | object
     details?: string | object
     success?: boolean
   }
 
-  constructor({ message, status, code }: { message: string; status: number; code?: string }) {
+  constructor({ message, status, code, requestId }: { message: string; status: number; code?: string; requestId?: string }) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.code = code
+    this.requestId = requestId
   }
 }
 
@@ -151,6 +153,7 @@ axiosInstance.interceptors.response.use(
         details?: string | object
         success?: boolean
         code?: string
+        request_id?: string
       } | undefined
       const errorMessage = data?.error || `HTTP ${error.response.status}: ${error.response.statusText}`
       const errorDetails = data?.details || undefined
@@ -159,6 +162,7 @@ axiosInstance.interceptors.response.use(
         message: errorMessage,
         status: error.response.status,
         code: data?.code,
+        requestId: data?.request_id,
       })
 
       // Attach the original response data for more detailed error handling
