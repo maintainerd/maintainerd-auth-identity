@@ -4,9 +4,6 @@ dist
 .env
 .env.*
 coverage
-test-results
-playwright-report
-.lighthouseci/
 *.log
 .agents/
 .claude/

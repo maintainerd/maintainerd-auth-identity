@@ -1,4 +1,4 @@
-# Performance — bundle budget & Lighthouse
+# Performance — bundle budget
 
 This app is a React 19 + Vite SPA. Route components are lazily loaded
 (route-based code-splitting, F4), so only the shell + the visited route's chunk
@@ -30,17 +30,10 @@ All other chunks are lazily-loaded route/component chunks under 10 KB each.
 **No chunk exceeds 500 KB raw** — the largest is the app entry at ~422 KB raw
 (~140 KB gzip). Budget is met.
 
-## Lighthouse CI
+## Lighthouse
 
-`npm run lighthouse` runs Lighthouse CI (`lhci autorun`) against the production
-preview build serving `/login` with **no backend** (the public auth pages render
-standalone). Config: `lighthouserc.json`.
-
-Assertion gates:
-
-- **Accessibility ≥ 0.90 — hard error** (blocks CI). The axe work (G5) keeps
-  these pages clean.
-- **Performance ≥ 0.80 — warn only** (does not block; scores vary in CI).
-- **Best-practices ≥ 0.90 — warn only.**
-
-Reports are written to `.lighthouseci/` (git-ignored).
+Automated Lighthouse (performance + accessibility) auditing is **deferred to the
+upcoming Playwright/browser test suite**, to be added by a specialist. For now the
+bundle budget above is the tracked performance gate; Lighthouse can be run
+manually against the production preview (`npm run build && npm run preview`, then
+audit `/login`).

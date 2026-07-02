@@ -15,13 +15,6 @@ dist-ssr
 # Test coverage output
 coverage
 
-# Playwright / a11y output
-test-results
-playwright-report
-
-# Lighthouse CI output
-.lighthouseci/
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
