@@ -76,6 +76,7 @@ export const API_ENDPOINTS = {
     ACCOUNT: '/account',
     ACCOUNT_IDENTITIES: '/account/identities',
     ACCOUNT_IDENTITIES_LINK: '/account/identities/link',
+    RECOVERY_BACKUP_CODE: '/recovery/backup-code',
     MAGIC_LINK_SEND: '/magic-link/send',
     MAGIC_LINK_VERIFY: '/magic-link/verify',
     FORGOT_PASSWORD: '/forgot-password',
