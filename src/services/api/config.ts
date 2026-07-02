@@ -74,6 +74,8 @@ export const API_ENDPOINTS = {
     REFRESH: '/refresh-token',
     PROFILE: '/profile',
     ACCOUNT: '/account',
+    ACCOUNT_IDENTITIES: '/account/identities',
+    ACCOUNT_IDENTITIES_LINK: '/account/identities/link',
     MAGIC_LINK_SEND: '/magic-link/send',
     MAGIC_LINK_VERIFY: '/magic-link/verify',
     FORGOT_PASSWORD: '/forgot-password',

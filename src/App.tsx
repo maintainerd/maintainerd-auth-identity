@@ -27,6 +27,7 @@ import OAuthGrantsPage from './pages/oauth/grants/OAuthGrantsPage'
 import OAuthEndSessionPage from './pages/oauth/end-session/OAuthEndSessionPage'
 import MFAPage from './pages/account/mfa'
 import SMSLoginPage from './pages/sms-login/SMSLoginPage'
+import LinkedIdentitiesPage from './pages/account/identities/LinkedIdentitiesPage'
 
 function App() {
   return (
@@ -60,6 +61,7 @@ function App() {
         <Route path="/login-success" element={<LoginSuccessPage />} />
         <Route path="/account/mfa" element={<MFAPage />} />
         <Route path="/sms-login" element={<SMSLoginPage />} />
+        <Route path="/account/identities" element={<LinkedIdentitiesPage />} />
       </Routes>
       </AppBootstrap>
       <ToastContainer
