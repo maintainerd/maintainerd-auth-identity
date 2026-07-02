@@ -1,0 +1,122 @@
+import { useState } from "react"
+import { useNavigate, Link, useSearchParams } from "react-router-dom"
+import { MessageSquare, ArrowLeft } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import LoginLayout from "@/components/layout/LoginLayout"
+import { useTenant } from "@/hooks/useTenant"
+import { useToast } from "@/hooks/useToast"
+import { post } from "@/services/api/client"
+import { API_ENDPOINTS } from "@/services/api/config"
+
+export default function SMSLoginPage() {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const { currentTenant } = useTenant()
+  const { showError, showSuccess } = useToast()
+
+  const [phone, setPhone] = useState("")
+  const [code, setCode] = useState("")
+  const [otpSent, setOtpSent] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [verifying, setVerifying] = useState(false)
+
+  const tenantId = currentTenant?.identifier ?? searchParams.get("tenant_id") ?? searchParams.get("t")
+  const clientId = searchParams.get("client_id")
+
+  const handleSendCode = async () => {
+    if (!phone) return
+    setSending(true)
+    try {
+      const body: Record<string, string> = { phone }
+      if (tenantId) body.tenant_id = tenantId
+      if (clientId) body.client_id = clientId
+      await post(API_ENDPOINTS.AUTH.SMS_LOGIN_SEND, body)
+      setOtpSent(true)
+      showSuccess("Verification code sent")
+    } catch (e: any) {
+      showError(e, "Failed to send code")
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const handleVerify = async () => {
+    if (!phone || !code) return
+    setVerifying(true)
+    try {
+      const body: Record<string, string> = { phone, code }
+      if (tenantId) body.tenant_id = tenantId
+      if (clientId) body.client_id = clientId
+      await post(API_ENDPOINTS.AUTH.SMS_LOGIN_VERIFY, body)
+      showSuccess("Signed in successfully")
+      navigate("/", { replace: true })
+    } catch (e: any) {
+      showError(e, "Verification failed")
+    } finally {
+      setVerifying(false)
+    }
+  }
+
+  return (
+    <LoginLayout branding={currentTenant?.branding}>
+      <div className="space-y-6 w-full max-w-sm">
+        <Link to="/login" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-3 w-3" /> Back to login
+        </Link>
+
+        <div className="space-y-2 text-center">
+          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-muted">
+            <MessageSquare className="size-6" />
+          </div>
+          <h1 className="text-2xl font-bold">Sign in with SMS</h1>
+          <p className="text-muted-foreground">
+            {otpSent
+              ? `Enter the verification code sent to ${phone}`
+              : "Enter your phone number to receive a one-time code"}
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          <Label>Phone Number</Label>
+          <Input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="+1234567890"
+            disabled={otpSent}
+            type="tel"
+          />
+
+          {otpSent && (
+            <>
+              <Label>Verification Code</Label>
+              <Input
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="000000"
+                maxLength={6}
+              />
+            </>
+          )}
+
+          {!otpSent ? (
+            <Button className="w-full" onClick={handleSendCode} disabled={sending || !phone}>
+              {sending ? "Sending..." : "Send Code"}
+            </Button>
+          ) : (
+            <Button className="w-full" onClick={handleVerify} disabled={verifying || code.length < 6}>
+              {verifying ? "Verifying..." : "Verify & Sign In"}
+            </Button>
+          )}
+
+          {otpSent && (
+            <Button variant="link" className="w-full text-sm" onClick={handleSendCode} disabled={sending}>
+              Resend code
+            </Button>
+          )}
+        </div>
+      </div>
+    </LoginLayout>
+  )
+}

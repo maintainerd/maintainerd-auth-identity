@@ -26,6 +26,7 @@ import OAuthCIBAPage from './pages/oauth/ciba/OAuthCIBAPage'
 import OAuthGrantsPage from './pages/oauth/grants/OAuthGrantsPage'
 import OAuthEndSessionPage from './pages/oauth/end-session/OAuthEndSessionPage'
 import MFAPage from './pages/account/mfa'
+import SMSLoginPage from './pages/sms-login/SMSLoginPage'
 
 function App() {
   return (
@@ -58,6 +59,7 @@ function App() {
         <Route path="/register/profile" element={<RegisterProfilePage />} />
         <Route path="/login-success" element={<LoginSuccessPage />} />
         <Route path="/account/mfa" element={<MFAPage />} />
+        <Route path="/sms-login" element={<SMSLoginPage />} />
       </Routes>
       </AppBootstrap>
       <ToastContainer

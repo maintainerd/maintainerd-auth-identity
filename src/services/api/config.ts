@@ -63,6 +63,8 @@ export const API_ENDPOINTS = {
     LOGIN_MFA_SEND_SMS: '/login/mfa/send-sms',
     LOGIN_MFA_SEND_EMAIL_OTP: '/login/mfa/send-email-otp',
     LOGIN_MFA_WEBAUTHN_BEGIN: '/login/mfa/webauthn/begin',
+    SMS_LOGIN_SEND: '/sms-login/send',
+    SMS_LOGIN_VERIFY: '/sms-login/verify',
     REGISTER: '/register',
     REGISTER_INVITE: '/register/invite',
     LOGOUT: '/logout',
