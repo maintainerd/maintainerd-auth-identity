@@ -25,6 +25,7 @@ import OAuthDevicePage from './pages/oauth/device/OAuthDevicePage'
 import OAuthCIBAPage from './pages/oauth/ciba/OAuthCIBAPage'
 import OAuthGrantsPage from './pages/oauth/grants/OAuthGrantsPage'
 import OAuthEndSessionPage from './pages/oauth/end-session/OAuthEndSessionPage'
+import MFAPage from './pages/account/mfa'
 
 function App() {
   return (
@@ -56,6 +57,7 @@ function App() {
         <Route path="/setup/admin" element={<SetupAdminPage />} />
         <Route path="/register/profile" element={<RegisterProfilePage />} />
         <Route path="/login-success" element={<LoginSuccessPage />} />
+        <Route path="/account/mfa" element={<MFAPage />} />
       </Routes>
       </AppBootstrap>
       <ToastContainer
