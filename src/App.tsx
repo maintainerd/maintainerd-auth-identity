@@ -29,6 +29,8 @@ import MFAPage from './pages/account/mfa'
 import SMSLoginPage from './pages/sms-login/SMSLoginPage'
 import LinkedIdentitiesPage from './pages/account/identities/LinkedIdentitiesPage'
 import BackupCodeRecoveryPage from './pages/recovery/BackupCodeRecoveryPage'
+import AccountLockedPage from './pages/account-locked/AccountLockedPage'
+import TooManyRequestsPage from './pages/too-many-requests/TooManyRequestsPage'
 
 function App() {
   return (
@@ -64,6 +66,8 @@ function App() {
         <Route path="/sms-login" element={<SMSLoginPage />} />
         <Route path="/account/identities" element={<LinkedIdentitiesPage />} />
         <Route path="/recovery" element={<BackupCodeRecoveryPage />} />
+        <Route path="/account-locked" element={<AccountLockedPage />} />
+        <Route path="/too-many-requests" element={<TooManyRequestsPage />} />
       </Routes>
       </AppBootstrap>
       <ToastContainer

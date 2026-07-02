@@ -147,6 +147,22 @@ axiosInstance.interceptors.response.use(
     }
 
     if (error.response) {
+      if (error.response.status === 429) {
+        return Promise.reject(new ApiError({
+          message: "Too many requests — please wait and try again",
+          status: 429,
+          code: "rate_limited",
+        }))
+      }
+
+      if (error.response.status === 423) {
+        return Promise.reject(new ApiError({
+          message: "Account temporarily locked due to too many attempts",
+          status: 423,
+          code: "account_locked",
+        }))
+      }
+
       // Server responded with error status
       const data = error.response.data as {
         error?: string
