@@ -6,26 +6,47 @@
 import axios, { type AxiosError, type AxiosRequestConfig, type InternalAxiosRequestConfig } from 'axios'
 import { API_CONFIG, API_ENDPOINTS, TOKEN_DELIVERY_HEADER } from './config'
 import { requestStepUp } from './stepUp'
-import './debug' // Import debug utilities in development
+
+// Debug utilities are development-only. Dynamically importing them behind the
+// DEV flag keeps the debug helper out of the production bundle entirely.
+if (import.meta.env.DEV) {
+  void import('./debug')
+}
 
 // Custom error class
 export class ApiError extends Error {
   public status: number
   public code?: string
   public requestId?: string
+  // Seconds to wait before retrying, parsed from the `Retry-After` response
+  // header (present on 429/503). Undefined when the server did not send one.
+  public retryAfter?: number
   public responseData?: {
     error: string | object
     details?: string | object
     success?: boolean
   }
 
-  constructor({ message, status, code, requestId }: { message: string; status: number; code?: string; requestId?: string }) {
+  constructor({ message, status, code, requestId, retryAfter }: { message: string; status: number; code?: string; requestId?: string; retryAfter?: number }) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.code = code
     this.requestId = requestId
+    this.retryAfter = retryAfter
   }
+}
+
+// Parse the HTTP `Retry-After` header, which may be either a number of seconds
+// or an HTTP-date. Returns the delay in whole seconds, or undefined when absent
+// or unparseable.
+function parseRetryAfter(headerValue: unknown): number | undefined {
+  if (typeof headerValue !== 'string' || headerValue.trim() === '') return undefined
+  const asSeconds = Number(headerValue)
+  if (Number.isFinite(asSeconds)) return Math.max(0, Math.round(asSeconds))
+  const asDate = Date.parse(headerValue)
+  if (Number.isNaN(asDate)) return undefined
+  return Math.max(0, Math.round((asDate - Date.now()) / 1000))
 }
 
 // Create axios instance with default configuration
@@ -106,7 +127,46 @@ function refreshSession(): Promise<void> {
   return refreshPromise
 }
 
+// D5: lockout / rate-limit redirect. The axios interceptor lives outside the
+// React tree, so it can't call useNavigate() directly. A component (AppBootstrap)
+// registers a navigation callback here; the interceptor invokes it when the
+// backend returns 423 (account locked) or 429 (rate limited) so the user is
+// taken to the matching screen instead of only seeing a toast.
+export type LimitRedirectKind = 'locked' | 'rate_limited'
+type LimitRedirectHandler = (kind: LimitRedirectKind, retryAfterSeconds?: number) => void
+let limitRedirectHandler: LimitRedirectHandler | null = null
+
+export function setLimitRedirectHandler(handler: LimitRedirectHandler | null): void {
+  limitRedirectHandler = handler
+}
+
 type RetriableRequestConfig = InternalAxiosRequestConfig & { _retry?: boolean; _stepUpRetry?: boolean }
+
+// User-facing fallback messages by HTTP status. Used only when the backend does
+// not supply its own `error` message, so we never surface a raw `HTTP <status>`
+// string to end users. 429/423 are handled ahead of this map with dedicated
+// lockout/rate-limit flows.
+function defaultMessageForStatus(status: number): string {
+  switch (status) {
+    case 400:
+      return 'The request was invalid. Please check your input and try again.'
+    case 401:
+      return 'Your session has expired or your credentials are invalid. Please sign in again.'
+    case 403:
+      return "You don't have permission to perform this action."
+    case 404:
+      return 'The requested resource could not be found.'
+    case 409:
+      return 'This action conflicts with the current state. Please refresh and try again.'
+    case 422:
+      return 'Some of the information provided is invalid. Please review and try again.'
+    default:
+      if (status >= 500) {
+        return 'Something went wrong on our end. Please try again in a moment.'
+      }
+      return 'Something went wrong. Please try again.'
+  }
+}
 
 // Response interceptor for error handling
 axiosInstance.interceptors.response.use(
@@ -148,14 +208,20 @@ axiosInstance.interceptors.response.use(
 
     if (error.response) {
       if (error.response.status === 429) {
+        const retryAfter = parseRetryAfter(error.response.headers?.['retry-after'])
+        limitRedirectHandler?.('rate_limited', retryAfter)
         return Promise.reject(new ApiError({
-          message: "Too many requests — please wait and try again",
+          message: retryAfter !== undefined
+            ? `Too many requests — please wait ${retryAfter}s and try again`
+            : "Too many requests — please wait and try again",
           status: 429,
           code: "rate_limited",
+          retryAfter,
         }))
       }
 
       if (error.response.status === 423) {
+        limitRedirectHandler?.('locked')
         return Promise.reject(new ApiError({
           message: "Account temporarily locked due to too many attempts",
           status: 423,
@@ -171,7 +237,7 @@ axiosInstance.interceptors.response.use(
         code?: string
         request_id?: string
       } | undefined
-      const errorMessage = data?.error || `HTTP ${error.response.status}: ${error.response.statusText}`
+      const errorMessage = data?.error || defaultMessageForStatus(error.response.status)
       const errorDetails = data?.details || undefined
 
       const apiError = new ApiError({

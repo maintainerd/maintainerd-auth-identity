@@ -64,7 +64,6 @@ const LoginForm = () => {
   const clientId = searchParams.get('client_id') || undefined
   const tenantId = searchParams.get('tenant_id') || undefined
   const screenHint = searchParams.get('screen_hint') || undefined
-  const registrationFlow = searchParams.get('registration_flow') || undefined
   const oauthAuthorizeTarget = useMemo(() => oauthAuthorizeTargetFromLoginParams(searchParams), [searchParams])
   const shouldLoadConnections = Boolean(clientId && oauthAuthorizeTarget)
   const loginSchema = buildLoginSchema()
@@ -156,7 +155,7 @@ const LoginForm = () => {
       const errorMessage = (err instanceof Error ? err.message : (err as { message?: string })?.message) || "Invalid email or password"
 
       if (errorMessage === 'email is not verified') {
-        localStorage.setItem('register_email', data.email)
+        sessionStorage.setItem('register_email', data.email)
         navigate('/email-verification', { replace: true })
         return
       }

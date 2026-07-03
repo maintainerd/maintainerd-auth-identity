@@ -33,7 +33,6 @@ export function RouteGuard({ children }: { children: ReactNode }) {
     account,
     tenant: currentTenant,
     registrationEnabled: connections.data?.registration_enabled,
-    verificationRequired: connections.data?.verification_required,
   })
 
   if (target && target !== location.pathname) {

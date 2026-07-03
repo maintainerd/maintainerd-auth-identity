@@ -20,7 +20,6 @@ const RegisterForm = () => {
   const { getCurrentTenant } = useTenant()
   const { showSuccess } = useToast()
   const [registerError, setRegisterError] = useState<string | null>(null)
-  const registrationFlow = searchParams.get("registration_flow") || undefined
 
   // Password rules follow the tenant policy.
   const passwordConfig = getCurrentTenant()?.password_config
@@ -63,7 +62,7 @@ const RegisterForm = () => {
       const fallbackName = data.email.split('@')[0] || 'User'
       await registerUser(data.fullname?.trim() || fallbackName, data.email, data.password, data.phone?.trim() || undefined)
 
-      localStorage.setItem('register_email', data.email)
+      sessionStorage.setItem('register_email', data.email)
       showSuccess('Account created successfully!')
 
       if (requestId) {

@@ -16,6 +16,20 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  /** Production build configuration */
+  build: {
+    // Do not ship source maps to production — they expose original source.
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        // Split large third-party dependencies into a dedicated vendor chunk
+        // so the app shell and lazily-loaded route chunks stay small.
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+        },
+      },
+    },
+  },
   /** Development server configuration */
   server: {
     port: 5174,

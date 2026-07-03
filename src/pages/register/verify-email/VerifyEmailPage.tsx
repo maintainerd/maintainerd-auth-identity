@@ -12,6 +12,7 @@ import { publicAuthQuery } from "@/utils/clientContext"
 import LoginLayout from "@/components/layout/LoginLayout"
 import { useTenant } from "@/hooks/useTenant"
 import { useAuth } from "@/hooks/useAuth"
+import { useToast } from "@/hooks/useToast"
 import { resolvePostAuthRoute } from "@/utils/postAuthRoute"
 
 const schema = yup.object({
@@ -24,11 +25,12 @@ export default function VerifyEmailPage() {
   const navigate = useNavigate()
   const { currentTenant } = useTenant()
   const { isAuthenticated, refreshAccount } = useAuth()
+  const { showSuccess, showError } = useToast()
   const [error, setError] = useState<string | null>(null)
   const [resending, setResending] = useState(false)
   const [verified, setVerified] = useState(false)
 
-  const email = localStorage.getItem('register_email') || ''
+  const email = sessionStorage.getItem('register_email') || ''
 
   // Note: the already-verified / wrong-step redirect is handled centrally by
   // RouteGuard before this page renders.
@@ -51,10 +53,12 @@ export default function VerifyEmailPage() {
       // without forcing a re-login. Otherwise (verified from a login redirect
       // with no session yet) show the success screen and send them to sign in.
       if (isAuthenticated) {
+        sessionStorage.removeItem('register_email')
         const fresh = await refreshAccount()
         navigate(resolvePostAuthRoute(fresh, currentTenant), { replace: true })
         return
       }
+      sessionStorage.removeItem('register_email')
       setVerified(true)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Verification failed'
@@ -64,10 +68,17 @@ export default function VerifyEmailPage() {
 
   const handleResend = async () => {
     setResending(true)
+    setError(null)
     try {
       await post(`/email-verification/send?${publicAuthQuery()}`, { email })
-    } catch { /* fail silently */ }
-    finally { setResending(false) }
+      showSuccess('A new verification code has been sent to your email.')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Could not resend the verification code. Please try again.'
+      showError(msg)
+      setError(msg)
+    } finally {
+      setResending(false)
+    }
   }
 
   if (verified) {

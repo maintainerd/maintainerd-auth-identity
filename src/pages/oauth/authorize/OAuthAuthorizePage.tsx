@@ -15,26 +15,28 @@ export default function OAuthAuthorizePage() {
   const [error, setError] = useState<string | null>(null)
   const startedRef = useRef(false)
 
-  const postSilentResult = (message: { redirect_uri?: string; error?: string }): boolean => {
-    if (searchParams.get('prompt') !== 'none' || window.parent === window) return false
-    const redirectURI = searchParams.get('redirect_uri')
-    if (!redirectURI) return false
-    try {
-      const targetOrigin = new URL(redirectURI).origin
-      window.parent.postMessage({
-        type: 'maintainerd:oauth:silent',
-        state: searchParams.get('state') || '',
-        ...message,
-      }, targetOrigin)
-      return true
-    } catch {
-      return false
-    }
-  }
-
   useEffect(() => {
     if (startedRef.current) return
     startedRef.current = true
+
+    // Defined inside the effect so it closes over the current searchParams
+    // without needing to be an effect dependency (the effect runs once).
+    const postSilentResult = (message: { redirect_uri?: string; error?: string }): boolean => {
+      if (searchParams.get('prompt') !== 'none' || window.parent === window) return false
+      const redirectURI = searchParams.get('redirect_uri')
+      if (!redirectURI) return false
+      try {
+        const targetOrigin = new URL(redirectURI).origin
+        window.parent.postMessage({
+          type: 'maintainerd:oauth:silent',
+          state: searchParams.get('state') || '',
+          ...message,
+        }, targetOrigin)
+        return true
+      } catch {
+        return false
+      }
+    }
 
     async function run() {
       try {

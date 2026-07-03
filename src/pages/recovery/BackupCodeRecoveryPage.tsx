@@ -29,7 +29,7 @@ export default function BackupCodeRecoveryPage() {
       if (tenantId) body.tenant_id = tenantId
       await post(API_ENDPOINTS.AUTH.RECOVERY_BACKUP_CODE, body)
       navigate("/", { replace: true })
-    } catch (e: any) {
+    } catch (e: unknown) {
       showError(e, "Recovery failed")
     } finally {
       setLoading(false)

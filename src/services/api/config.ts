@@ -20,18 +20,38 @@
  *   Setup:  GET /setup/status, POST /setup/*
  */
 
+// Runtime environment injected by docker-entrypoint.sh into window.__ENV__.
+// Lets a single built image target different API origins per deployment without
+// a rebuild. Values are optional; build-time import.meta.env is the fallback.
+declare global {
+  interface Window {
+    __ENV__?: Record<string, string | undefined>
+  }
+}
+
+function runtimeEnv(key: string): string | undefined {
+  if (typeof window === 'undefined') return undefined
+  const value = window.__ENV__?.[key]
+  // Ignore empty placeholders left by the local-dev config.js.
+  return value && value.trim() !== '' ? value : undefined
+}
+
 // Get base URL from environment variables
 // This app targets the public-facing API port (8081) of maintainerd-auth,
 // as opposed to the internal management port (8080) used by the admin console.
 // In development, use relative path to go through Vite proxy
-// In production, use the full API URL
+// In production, prefer runtime config, then the build-time value, then a default.
 const getBaseUrl = () => {
   if (import.meta.env.DEV) {
     // Development: use relative path to go through Vite proxy
     return '/api/v1'
   }
-  // Production: use environment variable or fallback
-  return import.meta.env.VITE_AUTH_API_BASE_URL || 'https://public-api.auth.maintainerd.local/api/v1'
+  // Production: runtime injection wins, then build-time env, then fallback.
+  return (
+    runtimeEnv('VITE_AUTH_API_BASE_URL') ||
+    import.meta.env.VITE_AUTH_API_BASE_URL ||
+    'https://public-api.auth.maintainerd.local/api/v1'
+  )
 }
 
 export const API_CONFIG = {
@@ -49,13 +69,6 @@ export const TOKEN_DELIVERY_HEADER = { 'X-Token-Delivery': 'cookie' } as const
 
 // API Endpoints
 export const API_ENDPOINTS = {
-  SETUP: {
-    STATUS: '/setup/status',
-    CREATE_TENANT: '/setup/create_tenant',
-    CREATE_ADMIN: '/setup/create_admin',
-    CREATE_PROFILE: '/setup/create_profile',
-    COMPLETE: '/setup/complete',
-  },
   AUTH: {
     LOGIN: '/login',
     // Login MFA second step (issues an acr=2 session on success).
@@ -76,6 +89,8 @@ export const API_ENDPOINTS = {
     ACCOUNT: '/account',
     ACCOUNT_IDENTITIES: '/account/identities',
     ACCOUNT_IDENTITIES_LINK: '/account/identities/link',
+    ACCOUNT_PHONE_SEND_VERIFICATION: '/account/phone/send-verification',
+    ACCOUNT_PHONE_VERIFY: '/account/phone/verify',
     RECOVERY_BACKUP_CODE: '/recovery/backup-code',
     MAGIC_LINK_SEND: '/magic-link/send',
     MAGIC_LINK_VERIFY: '/magic-link/verify',

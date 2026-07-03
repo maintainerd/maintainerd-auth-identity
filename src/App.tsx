@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Route, Routes, Navigate } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { StepUpProvider } from './components/stepup/StepUpProvider'
@@ -6,37 +7,45 @@ import 'react-toastify/dist/ReactToastify.css'
 import '@/styles/toast.css'
 import { queryClient } from '@/lib/queryClient'
 import { AppBootstrap } from './components/auth/AppBootstrap'
-import NoAccessPage from './pages/no-access/NoAccessPage'
-import ServiceUnavailablePage from './pages/service-unavailable/ServiceUnavailablePage'
-import LoginPage from './pages/login'
-import RegisterPage from './pages/register'
-import RegisterInvitePage from './pages/register/invite/RegisterInvitePage'
-import ForgotPasswordPage from './pages/forgot-password'
-import ResetPasswordPage from './pages/reset-password'
-import MagicLinkPage from './pages/magic-link/MagicLinkPage'
-import SetupTenantPage from './pages/setup/tenant'
-import SetupAdminPage from './pages/setup/admin'
-import RegisterProfilePage from './pages/register/profile'
-import VerifyEmailPage from './pages/register/verify-email/VerifyEmailPage'
-import LoginSuccessPage from './pages/login-success'
-import OAuthAuthorizePage from './pages/oauth/authorize/OAuthAuthorizePage'
-import OAuthConsentPage from './pages/oauth/consent/OAuthConsentPage'
-import OAuthDevicePage from './pages/oauth/device/OAuthDevicePage'
-import OAuthCIBAPage from './pages/oauth/ciba/OAuthCIBAPage'
-import OAuthGrantsPage from './pages/oauth/grants/OAuthGrantsPage'
-import OAuthEndSessionPage from './pages/oauth/end-session/OAuthEndSessionPage'
-import MFAPage from './pages/account/mfa'
-import SMSLoginPage from './pages/sms-login/SMSLoginPage'
-import LinkedIdentitiesPage from './pages/account/identities/LinkedIdentitiesPage'
-import BackupCodeRecoveryPage from './pages/recovery/BackupCodeRecoveryPage'
-import AccountLockedPage from './pages/account-locked/AccountLockedPage'
-import TooManyRequestsPage from './pages/too-many-requests/TooManyRequestsPage'
+import ErrorBoundary from './components/ErrorBoundary'
+import AppLoadingScreen from './components/layout/AppLoadingScreen'
+
+// Route pages are code-split with React.lazy so the initial bundle only carries
+// the app shell; each route's chunk is fetched on demand. <Suspense> shows the
+// existing bootstrap splash while a chunk loads.
+const NoAccessPage = lazy(() => import('./pages/no-access/NoAccessPage'))
+const ServiceUnavailablePage = lazy(() => import('./pages/service-unavailable/ServiceUnavailablePage'))
+const LoginPage = lazy(() => import('./pages/login'))
+const RegisterPage = lazy(() => import('./pages/register'))
+const RegisterInvitePage = lazy(() => import('./pages/register/invite/RegisterInvitePage'))
+const ForgotPasswordPage = lazy(() => import('./pages/forgot-password'))
+const ResetPasswordPage = lazy(() => import('./pages/reset-password'))
+const MagicLinkPage = lazy(() => import('./pages/magic-link/MagicLinkPage'))
+const RegisterProfilePage = lazy(() => import('./pages/register/profile'))
+const VerifyEmailPage = lazy(() => import('./pages/register/verify-email/VerifyEmailPage'))
+const LoginSuccessPage = lazy(() => import('./pages/login-success'))
+const OAuthAuthorizePage = lazy(() => import('./pages/oauth/authorize/OAuthAuthorizePage'))
+const OAuthConsentPage = lazy(() => import('./pages/oauth/consent/OAuthConsentPage'))
+const OAuthDevicePage = lazy(() => import('./pages/oauth/device/OAuthDevicePage'))
+const OAuthCIBAPage = lazy(() => import('./pages/oauth/ciba/OAuthCIBAPage'))
+const OAuthGrantsPage = lazy(() => import('./pages/oauth/grants/OAuthGrantsPage'))
+const OAuthEndSessionPage = lazy(() => import('./pages/oauth/end-session/OAuthEndSessionPage'))
+const MFAPage = lazy(() => import('./pages/account/mfa'))
+const SMSLoginPage = lazy(() => import('./pages/sms-login/SMSLoginPage'))
+const LinkedIdentitiesPage = lazy(() => import('./pages/account/identities/LinkedIdentitiesPage'))
+const VerifyPhonePage = lazy(() => import('./pages/account/phone/VerifyPhonePage'))
+const BackupCodeRecoveryPage = lazy(() => import('./pages/recovery/BackupCodeRecoveryPage'))
+const AccountLockedPage = lazy(() => import('./pages/account-locked/AccountLockedPage'))
+const TooManyRequestsPage = lazy(() => import('./pages/too-many-requests/TooManyRequestsPage'))
+const NotFoundPage = lazy(() => import('./pages/not-found/NotFoundPage'))
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <StepUpProvider>
       <AppBootstrap>
+      <ErrorBoundary>
+      <Suspense fallback={<AppLoadingScreen />}>
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/no-access" element={<NoAccessPage />} />
@@ -58,17 +67,19 @@ function App() {
         <Route path="/oauth/grants" element={<OAuthGrantsPage />} />
         <Route path="/oauth/end_session" element={<OAuthEndSessionPage />} />
         <Route path="/oauth/end-session" element={<OAuthEndSessionPage />} />
-        <Route path="/setup/tenant" element={<SetupTenantPage />} />
-        <Route path="/setup/admin" element={<SetupAdminPage />} />
         <Route path="/register/profile" element={<RegisterProfilePage />} />
         <Route path="/login-success" element={<LoginSuccessPage />} />
         <Route path="/account/mfa" element={<MFAPage />} />
         <Route path="/sms-login" element={<SMSLoginPage />} />
         <Route path="/account/identities" element={<LinkedIdentitiesPage />} />
+        <Route path="/account/phone" element={<VerifyPhonePage />} />
         <Route path="/recovery" element={<BackupCodeRecoveryPage />} />
         <Route path="/account-locked" element={<AccountLockedPage />} />
         <Route path="/too-many-requests" element={<TooManyRequestsPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
+      </Suspense>
+      </ErrorBoundary>
       </AppBootstrap>
       <ToastContainer
         position="bottom-right"

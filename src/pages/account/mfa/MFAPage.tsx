@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { ShieldCheck, Trash2, RefreshCw, Plus, X, QrCode, Copy } from "lucide-react"
+import { ShieldCheck, Trash2, RefreshCw, Plus, X, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { MFA_METHOD_META } from "@/lib/mfaMethods"
 import { base64urlToBuffer, serializeCredential } from "@/lib/webauthn"
+import { useAuth } from "@/hooks/useAuth"
 import { useToast } from "@/hooks/useToast"
 import {
   fetchMFAStatus,
@@ -29,7 +30,9 @@ import type { MFAStatusResponse } from "@/services/api/mfa"
 
 export default function MFAPage() {
   const queryClient = useQueryClient()
+  const { account } = useAuth()
   const { showError, showSuccess } = useToast()
+  const accountEmail = account?.email ?? ""
 
   const { data: status, isLoading } = useQuery({
     queryKey: ["mfa", "status"],
@@ -73,7 +76,7 @@ export default function MFAPage() {
 
   // SMS
   const smsBeginMut = useMutation({
-    mutationFn: (p: string) => beginSMSEnrollment({ phone: p }),
+    mutationFn: (p: string) => beginSMSEnrollment(p),
     onSuccess: () => {
       setSmsSent(true)
       showSuccess("Verification code sent")
@@ -82,7 +85,7 @@ export default function MFAPage() {
   })
 
   const smsVerifyMut = useMutation({
-    mutationFn: (c: string) => verifySMSEnrollment({ code: c }),
+    mutationFn: (c: string) => verifySMSEnrollment(phone, c),
     onSuccess: () => {
       showSuccess("SMS verification enabled")
       setActiveEnroll(null)
@@ -95,7 +98,7 @@ export default function MFAPage() {
 
   // Email OTP
   const emailBeginMut = useMutation({
-    mutationFn: beginEmailOtpEnrollment,
+    mutationFn: () => beginEmailOtpEnrollment(accountEmail),
     onSuccess: () => {
       showSuccess("Verification code sent to your email")
       setCode("")
@@ -104,7 +107,7 @@ export default function MFAPage() {
   })
 
   const emailVerifyMut = useMutation({
-    mutationFn: (c: string) => verifyEmailOtpEnrollment({ code: c }),
+    mutationFn: (c: string) => verifyEmailOtpEnrollment(accountEmail, c),
     onSuccess: () => {
       showSuccess("Email OTP verification enabled")
       setActiveEnroll(null)
@@ -119,28 +122,28 @@ export default function MFAPage() {
     onSuccess: async (data) => {
       try {
         const pk = data.publicKey
-        const credential = await navigator.credentials.create({
-          publicKey: {
-            rp: pk.rp,
-            user: { id: base64urlToBuffer(pk.user.id), name: pk.user.name, displayName: pk.user.displayName },
-            challenge: base64urlToBuffer(pk.challenge),
-            pubKeyCredParams: pk.pubKeyCredParams,
-            timeout: pk.timeout,
-            attestation: pk.attestation as AttestationConveyancePreference | undefined,
-            authenticatorSelection: pk.authenticatorSelection as AuthenticatorSelectionCriteria | undefined,
-          },
-        })
+        const publicKey: PublicKeyCredentialCreationOptions = {
+          rp: pk.rp,
+          user: { id: base64urlToBuffer(pk.user.id), name: pk.user.name, displayName: pk.user.displayName },
+          challenge: base64urlToBuffer(pk.challenge),
+          pubKeyCredParams: pk.pubKeyCredParams,
+          timeout: pk.timeout,
+          attestation: pk.attestation,
+          authenticatorSelection: pk.authenticatorSelection,
+        }
+        const credential = await navigator.credentials.create({ publicKey })
         if (!credential) {
           showError(new Error("Passkey registration was cancelled"))
           return
         }
         const serialized = serializeCredential(credential as PublicKeyCredential)
-        await finishWebAuthnRegistration(serialized)
+        const passkeyName = `Passkey · ${new Date().toLocaleDateString()}`
+        await finishWebAuthnRegistration(passkeyName, serialized)
         showSuccess("Passkey registered")
         setActiveEnroll(null)
         invalidate()
-      } catch (err: any) {
-        if (err?.message) showError(err)
+      } catch (err: unknown) {
+        if (err instanceof Error && err.message) showError(err)
         else showError(new Error("Passkey registration failed"))
       }
     },
@@ -176,7 +179,7 @@ export default function MFAPage() {
   const backupCodesMut = useMutation({
     mutationFn: regenerateBackupCodes,
     onSuccess: (data) => {
-      setBackupCodes(data.codes ?? data.backup_codes)
+      setBackupCodes(data.codes)
       invalidate()
     },
     onError: (e) => showError(e),
@@ -213,7 +216,7 @@ export default function MFAPage() {
         <FactorCard
           label="Authenticator App (TOTP)"
           icon={MFA_METHOD_META.totp.icon}
-          enabled={s?.totp ?? false}
+          enabled={s?.is_totp_enabled ?? false}
           enrolling={activeEnroll === "totp"}
           onEnroll={() => { setActiveEnroll("totp"); totpBeginMut.mutate() }}
           onDisable={() => disableTotpMut.mutate()}
@@ -240,7 +243,7 @@ export default function MFAPage() {
         <FactorCard
           label="Passkeys"
           icon={MFA_METHOD_META.webauthn.icon}
-          enabled={!!s?.webauthn && s.webauthn}
+          enabled={s?.is_webauthn_enabled ?? false}
           enrolling={activeEnroll === "webauthn"}
           onEnroll={() => { setActiveEnroll("webauthn"); webauthnBeginMut.mutate() }}
           loading={webauthnBeginMut.isPending}
@@ -253,9 +256,9 @@ export default function MFAPage() {
           {s?.webauthn_keys && s.webauthn_keys.length > 0 && (
             <div className="mt-2 space-y-1">
               {s.webauthn_keys.map((k) => (
-                <div key={k.uuid} className="flex items-center justify-between text-sm bg-muted/30 rounded p-2">
-                  <span>{k.name ?? k.credential_id?.slice(0, 16) ?? "Passkey"}</span>
-                  <Button variant="ghost" size="sm" onClick={() => deleteWebAuthnMut.mutate(k.uuid ?? k.credential_id)}>
+                <div key={k.credential_uuid} className="flex items-center justify-between text-sm bg-muted/30 rounded p-2">
+                  <span>{k.name ?? k.credential_uuid?.slice(0, 16) ?? "Passkey"}</span>
+                  <Button variant="ghost" size="sm" onClick={() => deleteWebAuthnMut.mutate(k.credential_uuid)}>
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
@@ -268,7 +271,7 @@ export default function MFAPage() {
         <FactorCard
           label="Text Message (SMS)"
           icon={MFA_METHOD_META.sms.icon}
-          enabled={s?.sms ?? false}
+          enabled={s?.is_sms_available ?? false}
           enrolling={activeEnroll === "sms"}
           onEnroll={() => setActiveEnroll("sms")}
           onDisable={() => disableSmsMut.mutate()}
@@ -307,7 +310,7 @@ export default function MFAPage() {
         <FactorCard
           label="Email OTP"
           icon={MFA_METHOD_META.email_otp.icon}
-          enabled={s?.email_otp ?? false}
+          enabled={s?.is_email_otp_available ?? false}
           enrolling={activeEnroll === "email_otp"}
           onEnroll={() => { setActiveEnroll("email_otp"); emailBeginMut.mutate() }}
           onDisable={() => disableEmailMut.mutate()}

@@ -91,7 +91,7 @@ export interface GuardContext {
 export function resolveGuardRedirect(ctx: GuardContext): string | null {
   const { pathname, search = '', isAuthenticated, account, tenant, registrationEnabled, verificationRequired } = ctx
 
-  if (pathname === NO_ACCESS_ROUTE || pathname === SERVICE_UNAVAILABLE_ROUTE || pathname.startsWith('/setup')) {
+  if (pathname === NO_ACCESS_ROUTE || pathname === SERVICE_UNAVAILABLE_ROUTE) {
     return null
   }
 

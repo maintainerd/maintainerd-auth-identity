@@ -24,7 +24,7 @@
 
 ## Overview
 
-Maintainerd Auth Identity is the public-facing authentication frontend for [`maintainerd-auth`](https://github.com/maintainerd/auth) — a multi-tenant authentication and authorization service. It provides end-user login, registration, magic link, and invite-based authentication flows, serving as the identity UI for external client applications (OAuth2, direct login, etc.).
+Maintainerd Auth Identity is the public-facing authentication frontend for [`maintainerd-auth`](https://github.com/maintainerd/maintainerd-auth) — a multi-tenant authentication and authorization service. It provides end-user login, registration, magic link, and invite-based authentication flows, serving as the identity UI for external client applications (OAuth2, direct login, etc.).
 
 It targets the **public API** (`maintainerd-auth` port `:8081`) and is the equivalent of the hosted login / signup widget of the Maintainerd ecosystem.
 
@@ -39,7 +39,6 @@ It targets the **public API** (`maintainerd-auth` port `:8081`) and is the equiv
 - **Self-registration** — public sign-up with tenant-controlled password policies
 - **Invite-based registration** — signed invite URL flow with token validation
 - **Forgot / reset password** — email-based password reset flow
-- **First-run setup** — tenant + admin bootstrap wizard
 - **TOTP — email verification step**
 - **Cookie-based session auth** — no tokens in `localStorage`, no CORS in development (Vite proxy)
 - **Multi-tenant** — public login is client-scoped (`/login?client_id=...`); the backend resolves the tenant from that client
@@ -50,8 +49,8 @@ It targets the **public API** (`maintainerd-auth` port `:8081`) and is the equiv
 
 ### Prerequisites
 
-- **Node.js 20+** (Vite 7 + React 19)
-- A running [`maintainerd-auth`](https://github.com/maintainerd/auth) backend exposing the **public port** `:8081`
+- **Node.js 22** (`>=22 <23`; see `.nvmrc`) — Vite 7 + React 19
+- A running [`maintainerd-auth`](https://github.com/maintainerd/maintainerd-auth) backend exposing the **public port** `:8081`
 
 ### Run the identity app
 
@@ -66,9 +65,9 @@ npm install
 npm run dev
 ```
 
-The dev server prints a URL — typically `http://localhost:5173`.
+The dev server prints a URL — typically `http://localhost:5174`.
 
-On first run against a fresh `maintainerd-auth` instance you will be redirected through the setup wizard (`/setup/tenant` → `/setup/admin` → `/setup/profile`) to bootstrap the first tenant and admin.
+First-run bootstrap of the initial tenant and admin is handled by the internal admin app, [`maintainerd-auth-console`](https://github.com/maintainerd/maintainerd-auth-console) (which targets the internal `:8080` surface where the setup endpoints live). Once a tenant and admin exist, users authenticate here in the identity app.
 
 ### Production build
 
@@ -123,15 +122,15 @@ The identity app is a single-page React application with a layered architecture:
 
 ## Configuration
 
-The identity app is configured via `.env` at the project root. In development, the Vite dev server proxies `/api/*` to the backend, so `VITE_AUTH_API_BASE_URL` is only used for production builds.
+The identity app is configured via `.env` at the project root (copy `.env.example`). In development, the Vite dev server proxies `/api/*` to the backend, so `VITE_AUTH_API_BASE_URL` is only used for production builds. For published Docker images the same value is injected at container start (see **Run via Docker**), so a single image can point at any backend without rebuilding.
 
-| Variable                  | Default                                          | Description                                                              |
-| ------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------ |
-| `VITE_AUTH_API_BASE_URL`  | `http://api.maintainerd.auth:8081/api/v1`        | Production base URL of the public API (port 8081)                       |
+| Variable                  | Example (`.env.example`)                             | Description                                        |
+| ------------------------- | ---------------------------------------------------- | -------------------------------------------------- |
+| `VITE_AUTH_API_BASE_URL`  | `https://public-api.auth.maintainerd.local/api/v1`   | Base URL of the public API (`maintainerd-auth` :8081) |
 
 ### Pointing the dev proxy at your backend
 
-`vite.config.ts` ships a proxy targeting `http://api.maintainerd.auth:8081`. If your backend is reachable elsewhere (e.g. bare-metal on `localhost:8081`), update the `target`:
+`vite.config.ts` ships a proxy targeting `https://public-api.auth.maintainerd.local` (the nginx host from the [`maintainerd-dev`](https://github.com/maintainerd/maintainerd-dev) environment). If your backend is reachable elsewhere (e.g. bare-metal on `localhost:8081`), update the `target`:
 
 ```ts
 server: {
@@ -156,7 +155,21 @@ npm run build
 # Outputs dist/index.html + assets
 ```
 
-For Docker-based deployments, a multi-stage `Dockerfile` (Node build stage + Nginx serve stage) is included.
+### Run via Docker
+
+The included multi-stage `Dockerfile` (Node build stage → non-root Nginx serve stage on port `8080`) supports **runtime configuration** — the API base URL is injected when the container starts, so one image works against any backend without rebuilding.
+
+```bash
+# Build the image
+docker build -t maintainerd-auth-identity .
+
+# Run it, pointing at your backend's public API
+docker run --rm -p 8080:8080 \
+  -e VITE_AUTH_API_BASE_URL="https://your-backend.example.com/api/v1" \
+  maintainerd-auth-identity
+```
+
+The entrypoint writes the value into `config.js` (`window.__ENV__`) at startup; the build-time `.env` value is used as the fallback.
 
 ---
 
@@ -188,10 +201,9 @@ npm run build    # type-check + production build
 
 ## Related Projects
 
-- [`maintainerd/auth`](https://github.com/maintainerd/auth) — Authentication & authorization backend (the API this app uses)
-- [`maintainerd/auth-console`](https://github.com/maintainerd/maintainerd-auth-console) — Admin management console (targets the internal port `:8080`)
-- [`maintainerd/core`](https://github.com/maintainerd/core) — Core platform services
-- [`maintainerd/contracts`](https://github.com/maintainerd/contracts) — Shared gRPC contracts
+- [`maintainerd-auth`](https://github.com/maintainerd/maintainerd-auth) — Authentication & authorization backend (the API this app uses)
+- [`maintainerd-auth-console`](https://github.com/maintainerd/maintainerd-auth-console) — Admin management console (targets the internal port `:8080`)
+- [`maintainerd-dev`](https://github.com/maintainerd/maintainerd-dev) — Local dev environment (docker compose, nginx, setup scripts) for the full stack
 
 ---
 

@@ -25,7 +25,7 @@ const RegisterProfileForm = () => {
   const [isProfileCreated, setIsProfileCreated] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const savedEmail = localStorage.getItem('register_email') || ''
+  const savedEmail = sessionStorage.getItem('register_email') || ''
 
   const {
     register,
@@ -58,7 +58,7 @@ const RegisterProfileForm = () => {
 
       const result = await createProfileForRegister(profileData)
       if (result.success) {
-        localStorage.removeItem('register_email')
+        sessionStorage.removeItem('register_email')
         // Sync auth state so the now-complete account (profile present) clears
         // the RouteGuard check when the success screen routes to login-success.
         await refreshAccount()

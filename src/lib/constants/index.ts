@@ -10,8 +10,3 @@ export {
   timezoneOptions,
   languageOptions
 } from './dropdownOptions'
-
-// Add more constant exports as needed
-// export { API_ENDPOINTS } from './api-endpoints'
-// export { VALIDATION_MESSAGES } from './validation-messages'
-// export { UI_CONSTANTS } from './ui-constants'

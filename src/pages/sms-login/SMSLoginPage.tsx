@@ -35,7 +35,7 @@ export default function SMSLoginPage() {
       await post(API_ENDPOINTS.AUTH.SMS_LOGIN_SEND, body)
       setOtpSent(true)
       showSuccess("Verification code sent")
-    } catch (e: any) {
+    } catch (e: unknown) {
       showError(e, "Failed to send code")
     } finally {
       setSending(false)
@@ -52,7 +52,7 @@ export default function SMSLoginPage() {
       await post(API_ENDPOINTS.AUTH.SMS_LOGIN_VERIFY, body)
       showSuccess("Signed in successfully")
       navigate("/", { replace: true })
-    } catch (e: any) {
+    } catch (e: unknown) {
       showError(e, "Verification failed")
     } finally {
       setVerifying(false)

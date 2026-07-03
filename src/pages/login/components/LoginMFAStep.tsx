@@ -107,6 +107,7 @@ export function LoginMFAStep({ challengeToken, allowedMethods, tenantId, clientI
                 <button
                   key={m}
                   type="button"
+                  aria-pressed={selected}
                   onClick={() => { setMethod(m); setCode(""); setSmsSent(false); setEmailOtpSent(false) }}
                   className={cn(
                     "flex items-center gap-3 rounded-lg border p-3 text-left text-sm transition-colors",

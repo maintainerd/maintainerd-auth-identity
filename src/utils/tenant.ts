@@ -12,7 +12,6 @@ export function getTenantIdentifierFromPath(pathname: string): string | null {
   // Skip public/auth routes that don't require tenant context
   if (pathname.startsWith('/login') ||
       pathname.startsWith('/register') ||
-      pathname.startsWith('/setup') ||
       pathname.startsWith('/forgot-password') ||
       pathname.startsWith('/reset-password') ||
       pathname.startsWith('/email-verification') ||

@@ -27,18 +27,6 @@ export interface MFAWebAuthnKey {
   created_at: string
 }
 
-export interface WebAuthnCredentialDownload {
-  credential_uuid: string
-  name: string
-  credential_key_id: string
-  public_key_base64: string
-  aaguid?: string
-  transport?: string
-  is_backup_eligible: boolean
-  is_backup_state: boolean
-  created_at: string
-}
-
 export interface TOTPEnrollResponse {
   secret: string
   qr_code_url: string
@@ -83,24 +71,23 @@ export async function disableTOTP(): Promise<void> {
   assertSuccess(r, "disable TOTP")
 }
 
-export async function getBackupCodesCount(): Promise<{ remaining: number }> {
-  const r: ApiResponse<{ remaining: number }> = await get<ApiResponse<{ remaining: number }>>(`${BASE}/backup-codes/count`)
-  return unwrap(r, "get backup codes count")
-}
-
 export async function regenerateBackupCodes(): Promise<BackupCodesResponse> {
   const r: ApiResponse<BackupCodesResponse> = await post<ApiResponse<BackupCodesResponse>>(`${BASE}/backup-codes/regenerate`)
   return unwrap(r, "regenerate backup codes")
 }
 
+// Shape returned by /mfa/webauthn/register/begin. Binary fields (challenge,
+// user.id) are base64url strings on the wire and must be decoded to ArrayBuffers
+// before being handed to navigator.credentials.create.
 export interface WebAuthnCreationOptions {
   publicKey: {
     rp: { name: string; id: string }
     user: { name: string; displayName: string; id: string }
     challenge: string
-    pubKeyCredParams: Array<{ type: string; alg: number }>
+    pubKeyCredParams: Array<{ type: "public-key"; alg: number }>
     timeout: number
-    authenticatorSelection?: Record<string, unknown>
+    attestation?: AttestationConveyancePreference
+    authenticatorSelection?: AuthenticatorSelectionCriteria
   }
 }
 
@@ -131,11 +118,6 @@ export async function beginWebAuthnAuthentication(): Promise<WebAuthnAssertionOp
 export async function deleteWebAuthnCredential(credentialUuid: string): Promise<void> {
   const r: ApiResponse<void> = await deleteRequest<ApiResponse<void>>(`${BASE}/webauthn/${credentialUuid}`)
   assertSuccess(r, "delete WebAuthn credential")
-}
-
-export async function downloadWebAuthnCredential(credentialUuid: string): Promise<WebAuthnCredentialDownload> {
-  const r: ApiResponse<WebAuthnCredentialDownload> = await get<ApiResponse<WebAuthnCredentialDownload>>(`${BASE}/webauthn/${credentialUuid}/download`)
-  return unwrap(r, "download WebAuthn credential")
 }
 
 // ── SMS MFA ──────────────────────────────────────────────────────────────────
@@ -170,14 +152,6 @@ export async function verifyEmailOtpEnrollment(email: string, code: string): Pro
 export async function disableEmailOtp(): Promise<void> {
   const r = await deleteRequest<ApiResponse<void>>(`${BASE}/email-otp`)
   assertSuccess(r, "disable Email OTP")
-}
-
-// ── Reset all (self-service) ──────────────────────────────────────────────────
-// Clears every MFA factor for the signed-in user. The server scopes this to the
-// session identity (no target param), so it can only ever reset your own MFA.
-export async function resetAllMFA(): Promise<void> {
-  const r = await post<ApiResponse<void>>(`${BASE}/reset`)
-  assertSuccess(r, "reset MFA")
 }
 
 // ── Step-up authentication ─────────────────────────────────────────────────────

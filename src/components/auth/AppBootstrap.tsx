@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import { Navigate, useLocation } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useTenant } from '@/hooks/useTenant'
 import { SERVICE_UNAVAILABLE_ROUTE } from '@/utils/postAuthRoute'
@@ -10,6 +10,7 @@ import { rememberPublicAuthContext } from '@/utils/clientContext'
 import { isOAuthInteractionRoute } from '@/utils/oauthRedirect'
 import { applyBranding, getBrandingBackground } from '@/utils/branding'
 import { fetchOAuthConnections } from '@/services/api/oauth'
+import { setLimitRedirectHandler } from '@/services/api/client'
 import type { BrandingPublic } from '@/services/api/tenants/types'
 
 /**
@@ -25,6 +26,7 @@ import type { BrandingPublic } from '@/services/api/tenants/types'
  */
 export function AppBootstrap({ children }: { children: ReactNode }) {
   const location = useLocation()
+  const navigate = useNavigate()
   const { initializeAuth, isInitialized } = useAuth()
   const { initializeTenant, currentTenant, error: tenantError } = useTenant()
 
@@ -45,6 +47,19 @@ export function AppBootstrap({ children }: { children: ReactNode }) {
       getBrandingBackground(metadata),
     )
   }, [clientBranding, currentTenant?.branding])
+
+  // D5: send the user to the lockout / rate-limit screen when the backend
+  // returns 423 / 429 on any request. Registered here (inside the router) so the
+  // module-level axios interceptor can trigger a navigation.
+  useEffect(() => {
+    setLimitRedirectHandler((kind, retryAfterSeconds) => {
+      navigate(kind === 'locked' ? '/account-locked' : '/too-many-requests', {
+        replace: true,
+        state: retryAfterSeconds !== undefined ? { retryAfter: retryAfterSeconds } : undefined,
+      })
+    })
+    return () => setLimitRedirectHandler(null)
+  }, [navigate])
 
   // Initialize auth once on mount (fetches /account if a session cookie exists).
   useEffect(() => {
@@ -97,7 +112,6 @@ export function AppBootstrap({ children }: { children: ReactNode }) {
 
   const isExemptFromServiceCheck =
     location.pathname === SERVICE_UNAVAILABLE_ROUTE ||
-    location.pathname.startsWith('/setup') ||
     location.pathname === '/login' ||
     location.pathname === '/magic-link' ||
     location.pathname === '/reset-password' ||

@@ -24,7 +24,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
 
       - name: Install dependencies
@@ -32,6 +32,9 @@ jobs:
 
       - name: Run ESLint
         run: npm run lint
+
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Test — Vitest unit tests with coverage
@@ -47,7 +50,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
 
       - name: Install dependencies
@@ -81,7 +84,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
 
       - name: Install dependencies
@@ -89,3 +92,77 @@ jobs:
 
       - name: Type-check and build
         run: npm run build
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # E2E — Playwright suite against the production preview build (no backend).
+  #
+  # Covers three hard gates, all cross-browser (chromium/firefox/webkit — the
+  # automatable core of Chrome/Edge/Firefox/Safari, K2):
+  #   • a11y     — automated WCAG 2.1 AA scan (axe); serious/critical = fail.
+  #   • responsive (K1) — no horizontal overflow + usable controls at
+  #     mobile/tablet/desktop viewports.
+  #   • journeys (K4)   — client-side validation, navigation, error states,
+  #     redirect safety.
+  # The public auth routes render standalone, so no live API is needed. The
+  # stack-gated `live` journeys are skipped here (E2E_BASE_URL is unset).
+  # ─────────────────────────────────────────────────────────────────────────────
+  e2e:
+    name: E2E (a11y + responsive + journeys)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Run Playwright E2E suite
+        run: npm run e2e
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Lighthouse — bundle budget + Lighthouse CI (K5) against the production preview.
+  # No backend required: the /login page renders standalone.
+  #
+  # Assertions (lighthouserc.json): accessibility >= 0.90 is a hard ERROR and
+  # blocks this job; performance and best-practices are WARN only (CI perf is
+  # noisy), so a low performance score never fails the build.
+  #
+  # ubuntu-latest ships google-chrome-stable pre-installed; Lighthouse's
+  # chrome-launcher discovers it automatically, so no extra browser install is
+  # needed here.
+  # ─────────────────────────────────────────────────────────────────────────────
+  lighthouse:
+    name: Lighthouse
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Run Lighthouse CI
+        run: npm run lighthouse

@@ -12,19 +12,6 @@ export type * from './api/types'
 export type * from './api/auth/types'
 export type * from './api/oauth/types'
 export type {
-  CreateTenantRequest,
-  TenantData,
-  CreateTenantResponse,
-  CreateAdminRequest,
-  AdminData,
-  CreateAdminResponse,
-  ProfileData,
-  SetupStatusData,
-  SetupStatusResponse,
-  CompleteSetupData,
-  CompleteSetupResponse,
-} from './api/setup/types'
-export type {
   TenantStatus,
   TenantEntity,
   TenantListParams,
@@ -32,18 +19,6 @@ export type {
   TenantResponse,
   TenantListResponse,
 } from './api/tenants/types'
-
-// Setup service functions
-export {
-  createTenant,
-  createAdmin,
-  createProfile,
-  getSetupStatus,
-  completeSetup,
-  getDefaultTenantMetadata,
-  createTenantWithDefaults,
-  isSetupCompleted,
-} from './api/setup'
 
 // Authentication service functions
 export {

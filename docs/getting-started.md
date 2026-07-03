@@ -105,9 +105,9 @@ If you run the backend in bare-metal mode or behind a different host name, point
 npm run dev
 ```
 
-The Vite dev server prints a URL — typically `http://localhost:5173`. Open it in your browser.
+The Vite dev server prints a URL — typically `http://localhost:5174`. Open it in your browser.
 
-On first run with a fresh backend you will be redirected to the setup wizard (`/setup/tenant` → `/setup/admin` → `/setup/profile`) to bootstrap the first tenant and admin user. After that, log in with the admin credentials you just created.
+First-run bootstrap of the initial tenant and admin is done in the internal admin app (`maintainerd-auth-console`, which targets the internal `:8080` surface where the setup endpoints live), not here. Once a tenant and admin exist, log in with those admin credentials in the identity app.
 
 ---
 

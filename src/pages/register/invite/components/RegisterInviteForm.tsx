@@ -13,6 +13,7 @@ import { resolvePostAuthRoute, loginSuccessRoute } from "@/utils/postAuthRoute"
 import { rememberOAuthReturnTo, clearOAuthReturnTo, rememberInviteCallback } from "@/utils/oauthRedirect"
 import { fetchInviteContext } from "@/services/api/auth"
 import * as yup from "yup"
+import { buildPasswordValidation } from "@/lib/validations/authSchema"
 import type { PasswordConfigPublic } from "@/services/api/tenants/types"
 
 interface InviteFormData {
@@ -24,37 +25,16 @@ interface InviteFormData {
 
 function buildInviteSchema(cfg?: PasswordConfigPublic) {
   return yup.object({
-    fullname: yup.string(),
-    phone: yup.string(),
-    password: buildRegisterPassword(cfg),
+    fullname: yup.string().default(''),
+    phone: yup.string().default(''),
+    // Reuse the shared tenant password policy so invite registration enforces
+    // exactly the same rules as standard registration and reset-password.
+    password: buildPasswordValidation(cfg),
     confirmPassword: yup
       .string()
       .required('Please confirm your password')
       .oneOf([yup.ref('password')], 'Passwords must match'),
   })
-}
-
-function buildRegisterPassword(cfg?: PasswordConfigPublic) {
-  let schema = yup.string().required('Password is required')
-  const minLen = cfg?.min_length ?? 12
-  const maxLen = cfg?.max_length ?? 128
-  schema = schema.min(minLen, `Password must be at least ${minLen} characters`)
-  if (maxLen > 0) {
-    schema = schema.max(maxLen, `Password must not exceed ${maxLen} characters`)
-  }
-  if (cfg?.require_uppercase) {
-    schema = schema.matches(/[A-Z]/, 'Password must contain at least one uppercase letter')
-  }
-  if (cfg?.require_lowercase) {
-    schema = schema.matches(/[a-z]/, 'Password must contain at least one lowercase letter')
-  }
-  if (cfg?.require_number) {
-    schema = schema.matches(/[0-9]/, 'Password must contain at least one digit')
-  }
-  if (cfg?.require_symbol) {
-    schema = schema.matches(/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/, 'Password must contain at least one special character')
-  }
-  return schema
 }
 
 const RegisterInviteForm = () => {
@@ -112,7 +92,7 @@ const RegisterInviteForm = () => {
       await registerInvite(invitedEmail, data.password, data.fullname?.trim() || undefined, data.phone?.trim() || undefined)
 
       if (invitedEmail) {
-        localStorage.setItem('register_email', invitedEmail)
+        sessionStorage.setItem('register_email', invitedEmail)
       }
       showSuccess('Account created successfully!')
 
