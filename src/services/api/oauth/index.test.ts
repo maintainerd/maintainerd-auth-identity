@@ -42,8 +42,6 @@ describe('oauth api', () => {
       data: {
         password_enabled: true,
         registration_enabled: true,
-        verification_required: false,
-        required_fields: ['email'],
         connections: [
           {
             identifier: 'google',
