@@ -76,13 +76,13 @@ export function clearOAuthReturnTo(): void {
   sessionStorage.removeItem(OAUTH_RETURN_KEY)
 }
 
-export function oauthLoginRoute(pathname: string, search: string, tenantIdentifier?: string | null): string {
+export function oauthLoginRoute(pathname: string, search: string): string {
   const current = `${pathname}${search}`
   const params = new URLSearchParams(search)
   params.set('return_to', current)
-  if (!params.get('client_id') && !params.get('tenant_id') && tenantIdentifier) {
-    params.set('tenant_id', tenantIdentifier)
-  }
+  // The tenant is resolved from the subdomain (utils/tenant), so it is never
+  // injected into the login URL. Any OAuth `client_id` already present in the
+  // authorize search is preserved as-is.
   rememberOAuthReturnTo(current)
   const query = params.toString()
   return query ? `/login?${query}` : '/login'

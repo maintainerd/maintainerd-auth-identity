@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import LoginLayout from "@/components/layout/LoginLayout"
+import { useTenant } from "@/hooks/useTenant"
 import { useToast } from "@/hooks/useToast"
 import { post } from "@/services/api/client"
 import { API_ENDPOINTS } from "@/services/api/config"
@@ -12,13 +13,15 @@ import { API_ENDPOINTS } from "@/services/api/config"
 export default function BackupCodeRecoveryPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const { currentTenant } = useTenant()
   const { showError } = useToast()
 
   const [code, setCode] = useState("")
   const [loading, setLoading] = useState(false)
 
   const clientId = searchParams.get("client_id")
-  const tenantId = searchParams.get("tenant_id")
+  // Tenant comes from the domain bootstrap (its slug), never from a query param.
+  const tenantId = currentTenant?.name
 
   const handleRecover = async () => {
     if (!code) return

@@ -4,11 +4,12 @@
  */
 
 import type { ActionReducerMapBuilder } from '@reduxjs/toolkit'
-import { 
-  fetchTenantAsync, 
-  fetchDefaultTenantAsync, 
-  fetchTenantByIdentifierAsync, 
-  initializeTenantAsync 
+import { bootstrapToTenantEntity } from '@/services'
+import {
+  fetchTenantAsync,
+  fetchDefaultTenantAsync,
+  fetchTenantBySlugAsync,
+  initializeTenantAsync
 } from './actions'
 import type { TenantState } from './types'
 
@@ -42,28 +43,29 @@ export const tenantExtraReducers = (builder: ActionReducerMapBuilder<TenantState
       state.isLoading = false
       state.error = action.error.message || 'Failed to fetch default tenant'
     })
-    // Fetch tenant by identifier
-    .addCase(fetchTenantByIdentifierAsync.pending, (state) => {
+    // Fetch tenant by slug
+    .addCase(fetchTenantBySlugAsync.pending, (state) => {
       state.isLoading = true
       state.error = null
     })
-    .addCase(fetchTenantByIdentifierAsync.fulfilled, (state, action) => {
+    .addCase(fetchTenantBySlugAsync.fulfilled, (state, action) => {
       state.isLoading = false
       state.currentTenant = action.payload
       state.error = null
     })
-    .addCase(fetchTenantByIdentifierAsync.rejected, (state, action) => {
+    .addCase(fetchTenantBySlugAsync.rejected, (state, action) => {
       state.isLoading = false
-      state.error = action.error.message || 'Failed to fetch tenant by identifier'
+      state.error = action.error.message || 'Failed to fetch tenant by slug'
     })
-    // Initialize tenant
+    // Initialize tenant (domain bootstrap)
     .addCase(initializeTenantAsync.pending, (state) => {
       state.isLoading = true
       state.error = null
     })
     .addCase(initializeTenantAsync.fulfilled, (state, action) => {
       state.isLoading = false
-      state.currentTenant = action.payload
+      state.bootstrap = action.payload
+      state.currentTenant = bootstrapToTenantEntity(action.payload)
       state.error = null
     })
     .addCase(initializeTenantAsync.rejected, (state, action) => {

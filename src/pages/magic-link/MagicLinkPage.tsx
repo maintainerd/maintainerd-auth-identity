@@ -19,8 +19,8 @@ export default function MagicLinkPage() {
   const verifiedRef = useRef(false)
 
   const finishAuthentication = useCallback((account: AccountEntity | null | undefined) => {
-    const tenantIdentifier = account?.tenant?.identifier
-    if (!tenantIdentifier) {
+    const tenantSlug = account?.tenant?.name
+    if (!tenantSlug) {
       setStatus("error")
       setErrorMessage("The sign-in session could not be established. Please request a new magic link.")
       return

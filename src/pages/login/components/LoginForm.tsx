@@ -62,7 +62,8 @@ const LoginForm = () => {
 
   const currentTenant = getCurrentTenant()
   const clientId = searchParams.get('client_id') || undefined
-  const tenantId = searchParams.get('tenant_id') || undefined
+  // Tenant comes from the domain bootstrap (its slug), never from a query param.
+  const tenantId = currentTenant?.name ?? undefined
   const screenHint = searchParams.get('screen_hint') || undefined
   const oauthAuthorizeTarget = useMemo(() => oauthAuthorizeTargetFromLoginParams(searchParams), [searchParams])
   const shouldLoadConnections = Boolean(clientId && oauthAuthorizeTarget)

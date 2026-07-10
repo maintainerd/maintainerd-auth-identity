@@ -5,7 +5,6 @@ import { useTenant } from '@/hooks/useTenant'
 import { SERVICE_UNAVAILABLE_ROUTE } from '@/utils/postAuthRoute'
 import AppLoadingScreen from '@/components/layout/AppLoadingScreen'
 import { RouteGuard } from './RouteGuard'
-import { fetchPublicClient } from '@/services/api/public-client'
 import { rememberPublicAuthContext } from '@/utils/clientContext'
 import { isOAuthInteractionRoute } from '@/utils/oauthRedirect'
 import { applyBranding, getBrandingBackground } from '@/utils/branding'
@@ -31,7 +30,7 @@ export function AppBootstrap({ children }: { children: ReactNode }) {
   const { initializeTenant, currentTenant, error: tenantError } = useTenant()
 
   const authStartedRef = useRef(false)
-  const lastTenantIdentifierRef = useRef<string | null | undefined>(undefined)
+  const tenantStartedRef = useRef(false)
   const [tenantSettled, setTenantSettled] = useState(false)
   const [clientBranding, setClientBranding] = useState<BrandingPublic | null>(null)
 
@@ -70,25 +69,28 @@ export function AppBootstrap({ children }: { children: ReactNode }) {
     })
   }, [initializeAuth])
 
-  // Initialize tenant from the current URL. Re-runs on tenant switches but never
-  // un-settles, so the splash only appears for the very first resolution.
+  // Resolve the tenant from the full host via the backend domain bootstrap and
+  // settle the splash. The tenant is NEVER parsed from the host client-side, nor
+  // taken from a query param / client_id — the backend resolves it from the full
+  // host (`GET /tenant?domain=<host>`). This holds for both direct navigation and
+  // the OAuth2 authorize flow (the calling app redirects to the correct tenant
+  // subdomain). An explicit OAuth `client_id` in the URL, when present, is used
+  // only to overlay per-client branding — not to resolve the tenant, and the
+  // tenant's own default client does not trigger an overlay.
   useEffect(() => {
     const run = async () => {
-      const { clientId, tenantId } = rememberPublicAuthContext(location.search)
+      const urlClientId = new URLSearchParams(location.search).get('client_id')?.trim() || undefined
+      // Persist the URL client_id (side-effect) for later same-session calls.
+      rememberPublicAuthContext(location.search)
       setClientBranding(null)
-      if (!clientId && !tenantId) {
-        setTenantSettled(true)
-        return
-      }
       try {
-        const tenantIdentifier = tenantId || (await fetchPublicClient(clientId!)).tenant_id
-        if (lastTenantIdentifierRef.current !== tenantIdentifier) {
-          lastTenantIdentifierRef.current = tenantIdentifier
-          await initializeTenant(tenantIdentifier)
+        if (!tenantStartedRef.current) {
+          tenantStartedRef.current = true
+          await initializeTenant()
         }
-        if (clientId) {
+        if (urlClientId) {
           try {
-            const connections = await fetchOAuthConnections(clientId)
+            const connections = await fetchOAuthConnections(urlClientId)
             setClientBranding(connections.branding
               ? { ...connections.branding, layout: connections.branding.layout as BrandingPublic['layout'] }
               : null)
@@ -97,7 +99,7 @@ export function AppBootstrap({ children }: { children: ReactNode }) {
           }
         }
       } catch {
-        /* discovery or tenant initialization failed */
+        /* tenant initialization or branding lookup failed */
       } finally {
         setTenantSettled(true)
       }

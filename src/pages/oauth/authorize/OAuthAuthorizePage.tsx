@@ -64,7 +64,7 @@ export default function OAuthAuthorizePage() {
             navigate({ pathname: '/register', search: params.toString() }, { replace: true })
             return
           }
-          navigate(oauthLoginRoute(window.location.pathname, window.location.search, currentTenant?.identifier), { replace: true })
+          navigate(oauthLoginRoute(window.location.pathname, window.location.search), { replace: true })
           return
         }
         setError(err instanceof Error ? err.message : 'Authorization failed.')
@@ -72,7 +72,7 @@ export default function OAuthAuthorizePage() {
     }
 
     run()
-  }, [currentTenant?.identifier, navigate, searchParams])
+  }, [navigate, searchParams])
 
   return (
     <LoginLayout branding={currentTenant?.branding}>

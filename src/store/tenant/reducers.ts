@@ -8,7 +8,7 @@ export { clearError, clearTenant } from './slice'
 export {
   fetchTenantAsync,
   fetchDefaultTenantAsync,
-  fetchTenantByIdentifierAsync,
+  fetchTenantBySlugAsync,
   initializeTenantAsync
 } from './actions'
 export type { TenantState } from './types'

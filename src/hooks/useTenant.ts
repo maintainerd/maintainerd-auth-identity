@@ -9,23 +9,21 @@ import { useToast } from '@/hooks/useToast'
 import {
   fetchTenantAsync,
   fetchDefaultTenantAsync,
-  fetchTenantByIdentifierAsync,
+  fetchTenantBySlugAsync,
   initializeTenantAsync,
   clearTenant as clearTenantAction,
   clearError
 } from '@/store/tenant/reducers'
-import { determineTenantIdentifier } from '@/utils/tenant'
 
 export function useTenant() {
   const dispatch = useAppDispatch()
   const { showError } = useToast()
-  const { currentTenant, isLoading, error } = useAppSelector((state) => state.tenant)
+  const { currentTenant, bootstrap, isLoading, error } = useAppSelector((state) => state.tenant)
 
-  const initializeFromLocation = useCallback(async (pathname: string, search: string) => {
+  // Resolve the tenant from the current host via the backend domain bootstrap.
+  const initializeFromLocation = useCallback(async () => {
     try {
-      const searchParams = new URLSearchParams(search)
-      const tenantIdentifier = determineTenantIdentifier(pathname, searchParams)
-      const result = await dispatch(initializeTenantAsync(tenantIdentifier || undefined)).unwrap()
+      const result = await dispatch(initializeTenantAsync()).unwrap()
       return result
     } catch (error) {
       showError('Failed to initialize tenant')
@@ -51,13 +49,13 @@ export function useTenant() {
     return result
   }, [dispatch])
 
-  const fetchByIdentifier = useCallback(async (identifier: string) => {
-    const result = await dispatch(fetchTenantByIdentifierAsync(identifier)).unwrap()
+  const fetchBySlug = useCallback(async (slug: string) => {
+    const result = await dispatch(fetchTenantBySlugAsync(slug)).unwrap()
     return result
   }, [dispatch])
 
-  const initializeTenant = useCallback(async (identifier?: string) => {
-    const result = await dispatch(initializeTenantAsync(identifier)).unwrap()
+  const initializeTenant = useCallback(async () => {
+    const result = await dispatch(initializeTenantAsync()).unwrap()
     return result
   }, [dispatch])
 
@@ -68,6 +66,13 @@ export function useTenant() {
   return {
     // State
     currentTenant,
+    // Full domain-bootstrap payload: surface, identity_url, console_url, and the
+    // tenant's default client for this surface (in addition to tenant + branding).
+    bootstrap,
+    surface: bootstrap?.surface,
+    identityUrl: bootstrap?.identity_url,
+    consoleUrl: bootstrap?.console_url,
+    defaultClient: bootstrap?.client ?? null,
     isLoading,
     error,
     // Actions
@@ -75,7 +80,7 @@ export function useTenant() {
     clearTenant,
     fetchTenant,
     fetchDefault,
-    fetchByIdentifier,
+    fetchBySlug,
     initializeTenant,
     initializeFromLocation,
     clearTenantError

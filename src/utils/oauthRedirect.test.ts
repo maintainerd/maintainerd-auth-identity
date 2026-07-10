@@ -49,7 +49,7 @@ describe('oauthRedirect', () => {
   })
 
   it('builds a login URL that preserves OAuth query and stores return_to', () => {
-    const route = oauthLoginRoute('/authorize', '?client_id=external&scope=openid', 'acme')
+    const route = oauthLoginRoute('/authorize', '?client_id=external&scope=openid')
     const url = new URL(route, window.location.origin)
 
     expect(url.pathname).toBe('/login')
@@ -59,12 +59,12 @@ describe('oauthRedirect', () => {
     expect(consumeOAuthReturnTo()).toBe('/authorize?client_id=external&scope=openid')
   })
 
-  it('adds tenant context for first-party OAuth URLs without an explicit client or tenant', () => {
-    const route = oauthLoginRoute('/device', '?user_code=ABCD-EFGH', 'acme')
+  it('never injects tenant context — the tenant is resolved from the subdomain', () => {
+    const route = oauthLoginRoute('/device', '?user_code=ABCD-EFGH')
     const url = new URL(route, window.location.origin)
 
     expect(url.pathname).toBe('/login')
-    expect(url.searchParams.get('tenant_id')).toBe('acme')
+    expect(url.searchParams.get('tenant_id')).toBeNull()
     expect(url.searchParams.get('return_to')).toBe('/device?user_code=ABCD-EFGH')
   })
 })

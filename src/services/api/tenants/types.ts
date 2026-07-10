@@ -70,10 +70,10 @@ export interface BrandingPublic {
  */
 export interface TenantEntity {
   tenant_id: string
+  /** Tenant slug — also the subdomain label used to resolve this tenant. */
   name: string
   display_name: string
   description: string
-  identifier: string
   status: TenantStatus
   is_default: boolean
   is_system: boolean
@@ -85,13 +85,63 @@ export interface TenantEntity {
 }
 
 /**
+ * Which frontend surface a host maps to. Returned by the domain-bootstrap
+ * endpoint so the app knows whether it is serving the identity or console UI.
+ */
+export type TenantSurface = 'identity' | 'console'
+
+/**
+ * Public projection of the tenant's seeded system client for a surface, returned
+ * by the domain-bootstrap endpoint. For an identity host this is the tenant's
+ * default IDENTITY client — the client_id first-party login should use without
+ * the user having to supply anything.
+ */
+export interface TenantBootstrapClient {
+  client_id: string
+  name: string
+  display_name: string
+  client_type: string
+}
+
+/**
+ * Public tenant identity projection embedded in the bootstrap response —
+ * identifying fields only. Password/registration policy live as siblings on the
+ * bootstrap payload (see TenantBootstrap), not on this projection.
+ */
+export interface TenantBootstrapTenant {
+  tenant_uuid: string
+  name: string
+  display_name: string
+  description: string
+  status: TenantStatus
+  is_system: boolean
+}
+
+/**
+ * Domain-resolved bootstrap payload returned by
+ * `GET /tenant?domain=<host>`. The backend resolves the full host to a tenant
+ * and surface — the frontend no longer parses the host itself.
+ */
+export interface TenantBootstrap {
+  tenant: TenantBootstrapTenant
+  surface: TenantSurface
+  identity_url: string
+  console_url: string
+  /** Tenant-managed password policy, enforced client-side for UX. */
+  password_config?: PasswordConfigPublic
+  /** Tenant-managed registration gating (self-signup, email verification, captcha). */
+  registration_config?: RegistrationConfigPublic
+  branding?: BrandingPublic | null
+  client?: TenantBootstrapClient | null
+}
+
+/**
  * Tenant list query parameters
  */
 export interface TenantListParams {
   name?: string
   display_name?: string
   description?: string
-  identifier?: string
   status?: TenantStatus
   is_default?: boolean
   is_system?: boolean

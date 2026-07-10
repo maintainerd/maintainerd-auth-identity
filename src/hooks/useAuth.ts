@@ -30,6 +30,8 @@ export function useAuth() {
   const [searchParams] = useSearchParams()
   const { showError } = useToast()
   const { profile, account, isAuthenticated, isLoading, isInitialized, error } = useAppSelector((state) => state.auth)
+  // Tenant slug resolved by the domain bootstrap (never parsed from the host).
+  const tenantSlug = useAppSelector((state) => state.tenant.currentTenant?.name)
 
   const login = useCallback(async (email: string, password: string) => {
     const result = await dispatch(loginAsync({ username: email, password })).unwrap()
@@ -75,7 +77,8 @@ export function useAuth() {
     phone?: string
   ) => {
     const clientId = searchParams.get('client_id')
-    const tenantId = searchParams.get('tenant_id')
+    // Tenant comes from the domain bootstrap (its slug), never from a query param.
+    const tenantId = tenantSlug ?? undefined
     const registrationFlow = searchParams.get('registration_flow')
 
     const result = await dispatch(registerAsync({
@@ -84,12 +87,12 @@ export function useAuth() {
       password,
       phone,
       clientId: clientId || undefined,
-      tenantId: tenantId || undefined,
+      tenantId,
       registrationFlow: registrationFlow || undefined,
     })).unwrap()
 
     return { data: result.data }
-  }, [dispatch, searchParams])
+  }, [dispatch, searchParams, tenantSlug])
 
   const registerInvite = useCallback(async (
     email: string,

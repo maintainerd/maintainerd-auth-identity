@@ -22,7 +22,9 @@ export default function SMSLoginPage() {
   const [sending, setSending] = useState(false)
   const [verifying, setVerifying] = useState(false)
 
-  const tenantId = currentTenant?.identifier ?? searchParams.get("tenant_id") ?? searchParams.get("t")
+  // Tenant comes from the domain bootstrap (its slug); client_id (OAuth) still
+  // comes from the URL.
+  const tenantId = currentTenant?.name
   const clientId = searchParams.get("client_id")
 
   const handleSendCode = async () => {

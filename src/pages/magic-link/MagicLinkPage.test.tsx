@@ -57,7 +57,7 @@ describe('MagicLinkPage MFA routing', () => {
 
   it('loads the account and continues to success when MFA is not required', async () => {
     verifyMagicLinkMock.mockResolvedValueOnce({ success: true, data: {} })
-    fetchAccountMock.mockResolvedValueOnce({ tenant: { identifier: 'acme' } })
+    fetchAccountMock.mockResolvedValueOnce({ tenant: { name: 'acme' } })
 
     renderWithProviders(<MagicLinkPage />, { route: callbackURL, path: '/magic-link' })
 

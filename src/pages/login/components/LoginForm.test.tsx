@@ -149,7 +149,7 @@ describe('LoginForm passwordless sign-in', () => {
         profiles: [{ profile_id: 'profile-1', first_name: 'Test', display_name: 'Test', default: true }],
         roles: [],
         permissions: [],
-        tenant: { tenant_id: 'tenant-1', name: 'acme', display_name: 'Acme', identifier: 'acme' },
+        tenant: { tenant_id: 'tenant-1', name: 'acme', display_name: 'Acme' },
       },
     })
     renderWithProviders(<LoginForm />, { route: '/login', path: '/login' })

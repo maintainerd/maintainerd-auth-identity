@@ -39,7 +39,7 @@ export interface AccountEntity {
   profiles: AccountProfileEntity[]
   roles: string[]
   permissions: string[]
-  tenant: { tenant_id: string; name: string; display_name: string; identifier: string }
+  tenant: { tenant_id: string; name: string; display_name: string }
 }
 
 export interface AccountProfileEntity {

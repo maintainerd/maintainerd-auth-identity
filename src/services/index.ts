@@ -55,6 +55,8 @@ export {
 // Tenant service functions
 export {
   fetchDefaultTenant,
-  fetchTenantByIdentifier,
-  fetchTenant
+  fetchTenantBySlug,
+  fetchTenant,
+  fetchTenantBootstrap,
+  bootstrapToTenantEntity
 } from './api/tenants'
