@@ -154,6 +154,14 @@ export async function disableEmailOtp(): Promise<void> {
   assertSuccess(r, "disable Email OTP")
 }
 
+// ── Reset all (self-service) ──────────────────────────────────────────────────
+// Clears every MFA factor for the signed-in user. The server scopes this to the
+// session identity (no target param), so it can only ever reset your own MFA.
+export async function resetAllMFA(): Promise<void> {
+  const r = await post<ApiResponse<void>>(`${BASE}/reset`)
+  assertSuccess(r, "reset MFA")
+}
+
 // ── Step-up authentication ─────────────────────────────────────────────────────
 // Used to elevate a session (acr=2) before a sensitive action such as deleting
 // the account or revoking all sessions. The verified token is then passed as a

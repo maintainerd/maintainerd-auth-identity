@@ -31,6 +31,10 @@ const OAuthCIBAPage = lazy(() => import('./pages/oauth/ciba/OAuthCIBAPage'))
 const OAuthGrantsPage = lazy(() => import('./pages/oauth/grants/OAuthGrantsPage'))
 const OAuthEndSessionPage = lazy(() => import('./pages/oauth/end-session/OAuthEndSessionPage'))
 const MFAPage = lazy(() => import('./pages/account/mfa'))
+const MFATotpPage = lazy(() => import('./pages/account/mfa/TOTPSetupPage'))
+const MFAPasskeyPage = lazy(() => import('./pages/account/mfa/PasskeySetupPage'))
+const MFASmsPage = lazy(() => import('./pages/account/mfa/SMSSetupPage'))
+const MFAEmailOtpPage = lazy(() => import('./pages/account/mfa/EmailOtpSetupPage'))
 const SMSLoginPage = lazy(() => import('./pages/sms-login/SMSLoginPage'))
 const LinkedIdentitiesPage = lazy(() => import('./pages/account/identities/LinkedIdentitiesPage'))
 const VerifyPhonePage = lazy(() => import('./pages/account/phone/VerifyPhonePage'))
@@ -38,6 +42,16 @@ const BackupCodeRecoveryPage = lazy(() => import('./pages/recovery/BackupCodeRec
 const AccountLockedPage = lazy(() => import('./pages/account-locked/AccountLockedPage'))
 const TooManyRequestsPage = lazy(() => import('./pages/too-many-requests/TooManyRequestsPage'))
 const NotFoundPage = lazy(() => import('./pages/not-found/NotFoundPage'))
+const AccountLinkPage = lazy(() => import('./pages/account-link/AccountLinkPage'))
+const ErasurePage = lazy(() => import('./pages/account/erasure/ErasurePage'))
+const AccountOverviewPage = lazy(() => import('./pages/account/AccountOverviewPage'))
+const AccountProfilesPage = lazy(() => import('./pages/account/profiles/AccountProfilesPage'))
+const AccountProfileFormPage = lazy(() => import('./pages/account/profiles/ProfileFormPage'))
+const AccountSecurityPage = lazy(() => import('./pages/account/security/AccountSecurityPage'))
+const AccountSessionsPage = lazy(() => import('./pages/account/sessions/AccountSessionsPage'))
+const AccountDevicesPage = lazy(() => import('./pages/account/devices/AccountDevicesPage'))
+const AccountSettingsPage = lazy(() => import('./pages/account/settings/AccountSettingsPage'))
+const AccountDataPage = lazy(() => import('./pages/account/data/AccountDataPage'))
 
 function App() {
   return (
@@ -70,12 +84,27 @@ function App() {
         <Route path="/register/profile" element={<RegisterProfilePage />} />
         <Route path="/login-success" element={<LoginSuccessPage />} />
         <Route path="/account/mfa" element={<MFAPage />} />
+        <Route path="/account/mfa/totp" element={<MFATotpPage />} />
+        <Route path="/account/mfa/passkeys" element={<MFAPasskeyPage />} />
+        <Route path="/account/mfa/sms" element={<MFASmsPage />} />
+        <Route path="/account/mfa/email-otp" element={<MFAEmailOtpPage />} />
         <Route path="/sms-login" element={<SMSLoginPage />} />
         <Route path="/account/identities" element={<LinkedIdentitiesPage />} />
         <Route path="/account/phone" element={<VerifyPhonePage />} />
         <Route path="/recovery" element={<BackupCodeRecoveryPage />} />
         <Route path="/account-locked" element={<AccountLockedPage />} />
         <Route path="/too-many-requests" element={<TooManyRequestsPage />} />
+        <Route path="/account-link" element={<AccountLinkPage />} />
+        <Route path="/account/erasure" element={<ErasurePage />} />
+        <Route path="/account" element={<AccountOverviewPage />} />
+        <Route path="/account/profile" element={<AccountProfilesPage />} />
+        <Route path="/account/profile/new" element={<AccountProfileFormPage />} />
+        <Route path="/account/profile/:profileId/edit" element={<AccountProfileFormPage />} />
+        <Route path="/account/security" element={<AccountSecurityPage />} />
+        <Route path="/account/sessions" element={<AccountSessionsPage />} />
+        <Route path="/account/devices" element={<AccountDevicesPage />} />
+        <Route path="/account/settings" element={<AccountSettingsPage />} />
+        <Route path="/account/data" element={<AccountDataPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
       </Suspense>

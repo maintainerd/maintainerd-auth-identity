@@ -50,7 +50,7 @@ const getBaseUrl = () => {
   return (
     runtimeEnv('VITE_AUTH_API_BASE_URL') ||
     import.meta.env.VITE_AUTH_API_BASE_URL ||
-    'https://public-api.auth.maintainerd.local/api/v1'
+    'https://identity-api.auth.maintainerd.local/api/v1'
   )
 }
 
@@ -92,6 +92,8 @@ export const API_ENDPOINTS = {
     ACCOUNT_PHONE_SEND_VERIFICATION: '/account/phone/send-verification',
     ACCOUNT_PHONE_VERIFY: '/account/phone/verify',
     RECOVERY_BACKUP_CODE: '/recovery/backup-code',
+    BROKER_RESUME: '/oauth/broker/resume',
+    ERASURE_REQUEST: '/me/erasure-request',
     MAGIC_LINK_SEND: '/magic-link/send',
     MAGIC_LINK_VERIFY: '/magic-link/verify',
     FORGOT_PASSWORD: '/forgot-password',

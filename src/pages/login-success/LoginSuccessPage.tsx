@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Check, ShieldCheck } from 'lucide-react'
+import { Check, ShieldCheck, User, Shield, Monitor, Link2, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import LoginLayout from '@/components/layout/LoginLayout'
 import { useAuth } from '@/hooks/useAuth'
@@ -52,6 +52,10 @@ export default function LoginSuccessPage() {
       window.location.assign(inviteCallback)
       return
     }
+
+    // Direct login (no OAuth or invite context) → go straight to the account dashboard.
+    redirectedRef.current = true
+    navigate('/account', { replace: true })
   }, [navigate])
 
   const handleLogout = async () => {
@@ -98,9 +102,38 @@ export default function LoginSuccessPage() {
             </div>
           </div>
         )}
+        {/* Account sections */}
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          {[
+            { href: '/account/profile', label: 'Profile', description: 'Names & avatar', icon: User },
+            { href: '/account/security', label: 'Security', description: 'Password & email', icon: Shield },
+            { href: '/account/sessions', label: 'Sessions', description: 'Active sign-ins', icon: Monitor },
+            { href: '/account/mfa', label: 'Two-Factor', description: 'MFA settings', icon: ShieldCheck },
+            { href: '/account/identities', label: 'Linked Accounts', description: 'Social logins', icon: Link2 },
+            { href: '/account/settings', label: 'Preferences', description: 'App settings', icon: Settings },
+          ].map(({ href, label, description, icon: Icon }) => (
+            <Link
+              key={href}
+              to={href}
+              className="flex items-center gap-3 rounded-lg border bg-card p-3 text-sm hover:bg-muted/50 transition-colors"
+            >
+              <Icon className="size-4 text-muted-foreground shrink-0" />
+              <div>
+                <p className="font-medium">{label}</p>
+                <p className="text-xs text-muted-foreground">{description}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
         <Button variant="outline" onClick={handleLogout}>
           Sign out
         </Button>
+        <Link
+          to="/account/erasure"
+          className="text-xs text-muted-foreground/60 hover:text-destructive transition-colors"
+        >
+          Delete account
+        </Link>
       </div>
     </LoginLayout>
   )

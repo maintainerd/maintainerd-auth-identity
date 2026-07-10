@@ -84,4 +84,20 @@ describe('resolveGuardRedirect OAuth broker routing', () => {
       verificationRequired: true,
     })).toBe('/email-verification')
   })
+
+  it('sends an already-authenticated user landing on / to the account dashboard', () => {
+    expect(resolveGuardRedirect({ ...authenticated, pathname: '/' })).toBe('/account')
+  })
+
+  it('sends an already-authenticated user on the login page to the account dashboard', () => {
+    expect(resolveGuardRedirect({ ...authenticated, pathname: '/login' })).toBe('/account')
+  })
+
+  it('lets an authenticated user render the account dashboard without redirecting', () => {
+    expect(resolveGuardRedirect({ ...authenticated, pathname: '/account' })).toBeNull()
+  })
+
+  it('still renders login-success (it performs OAuth/invite continuation itself)', () => {
+    expect(resolveGuardRedirect({ ...authenticated, pathname: '/login-success' })).toBeNull()
+  })
 })

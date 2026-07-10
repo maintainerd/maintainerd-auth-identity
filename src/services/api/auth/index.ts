@@ -6,6 +6,7 @@
 import { post, get } from '../client'
 import { API_ENDPOINTS, TOKEN_DELIVERY_HEADER } from '../config'
 import type { ApiResponse } from '../types'
+import { unwrap } from '../_lib/unwrap'
 import type { WebAuthnAssertionOptions } from '@/lib/webauthn'
 import type { ProfileEntity, AccountEntity, LoginRequest, LoginResponse, MFALoginVerifyRequest, LogoutResponse, RegisterRequest, RegisterResponse, RegisterInviteRequest, RegisterInviteQueryParams, CreateProfileRequest, CreateProfileResponse, ForgotPasswordRequest, ForgotPasswordResponse, ResetPasswordRequest, ResetPasswordResponse, ResetPasswordQueryParams, ProfileResponse } from './types'
 import { appendPublicAuthContext, publicAuthQuery, type PublicAuthContext } from '@/utils/clientContext'
@@ -303,6 +304,39 @@ export async function fetchInviteContext(inviteToken: string): Promise<InviteCon
   } catch {
     return null
   }
+}
+
+// Confirm a pending account link request. Requires an authenticated session as
+// the existing account. Returns the confirmed provider name and status.
+export async function confirmAccountLink(token: string): Promise<{ provider: string; status: string }> {
+  const r = await post<ApiResponse<{ provider: string; status: string }>>(
+    `/account-link/${token}/confirm`,
+    {},
+  )
+  return unwrap(r, 'confirm account link')
+}
+
+// Resume a brokered OAuth flow after a user has confirmed an account link.
+// Returns the downstream redirect URL the browser should navigate to.
+export async function resumeBrokerSession(data: {
+  broker_session_uuid: string
+  account_link_token: string
+}): Promise<{ redirect_url: string; access_token?: string }> {
+  const r = await post<ApiResponse<{ redirect_url: string; access_token?: string }>>(
+    API_ENDPOINTS.AUTH.BROKER_RESUME,
+    data,
+  )
+  return unwrap(r, 'resume broker session')
+}
+
+// Request erasure of the authenticated user's personal data (GDPR Art.17).
+// Schedules anonymisation in 30 days. Idempotent — repeated calls are safe.
+export async function requestDataErasure(): Promise<{ uuid: string; status: string; scheduled_at: string }> {
+  const r = await post<ApiResponse<{ uuid: string; status: string; scheduled_at: string }>>(
+    API_ENDPOINTS.AUTH.ERASURE_REQUEST,
+    {},
+  )
+  return unwrap(r, 'request data erasure')
 }
 
 // Export functions as an object for backward compatibility

@@ -14,7 +14,6 @@
 
 import type { AccountEntity } from '@/services/api/auth/types'
 import type { TenantEntity } from '@/services/api/tenants/types'
-import { getTenantIdentifierFromPath } from '@/utils/tenant'
 import { isBrokerAuthorizeRoute, isOAuthInteractionRoute, oauthLoginRoute } from '@/utils/oauthRedirect'
 
 export const VERIFY_EMAIL_ROUTE = '/email-verification'
@@ -26,6 +25,9 @@ export const MAGIC_LINK_ROUTE = '/magic-link'
 export const NO_ACCESS_ROUTE = '/no-access'
 export const SERVICE_UNAVAILABLE_ROUTE = '/service-unavailable'
 export const LOGIN_SUCCESS_ROUTE = '/login-success'
+// The self-service account dashboard — where a fully-registered, authenticated
+// user lands when there is no OAuth redirect (or invite callback) to continue.
+export const ACCOUNT_ROUTE = '/account'
 
 // Public auth pages an authenticated, fully-registered user should never sit on.
 const AUTH_PAGES = [
@@ -95,10 +97,19 @@ export function resolveGuardRedirect(ctx: GuardContext): string | null {
     return null
   }
 
+  // `home` is the sentinel used to detect incomplete-registration detours
+  // (verify email / create profile). A fully-registered session resolves to
+  // LOGIN_SUCCESS_ROUTE.
   const home = isAuthenticated ? resolvePostAuthRoute(account, tenant, { verificationRequired }) : LOGIN_ROUTE
 
+  // Where a fully-registered, authenticated user actually lands when there is no
+  // OAuth redirect in play: the account dashboard, not the login-success screen.
+  // OAuth interaction routes are handled separately below and are never coerced
+  // to the dashboard, so an OAuth2 redirect still continues its flow.
+  const authenticatedHome = home === LOGIN_SUCCESS_ROUTE ? ACCOUNT_ROUTE : home
+
   if (pathname === '/') {
-    return home
+    return authenticatedHome
   }
 
   if (
@@ -110,17 +121,17 @@ export function resolveGuardRedirect(ctx: GuardContext): string | null {
   }
 
   if (isAuthPage(pathname)) {
-    return isAuthenticated ? home : null
+    return isAuthenticated ? authenticatedHome : null
   }
 
   if (pathname === VERIFY_EMAIL_ROUTE) {
     if (!isAuthenticated) return null
-    return home === VERIFY_EMAIL_ROUTE ? null : home
+    return home === VERIFY_EMAIL_ROUTE ? null : authenticatedHome
   }
 
   if (pathname === REGISTER_PROFILE_ROUTE) {
     if (!isAuthenticated) return LOGIN_ROUTE
-    return home === REGISTER_PROFILE_ROUTE ? null : home
+    return home === REGISTER_PROFILE_ROUTE ? null : authenticatedHome
   }
 
   if (pathname === LOGIN_SUCCESS_ROUTE) {
@@ -133,19 +144,19 @@ export function resolveGuardRedirect(ctx: GuardContext): string | null {
       return null
     }
     if (isOAuthInteractionRoute(pathname)) {
-      return oauthLoginRoute(pathname, search, tenant?.identifier)
+      return oauthLoginRoute(pathname, search)
     }
     return LOGIN_ROUTE
   }
+
+  // Authenticated but mid-registration (verify email / create profile) — the
+  // detour takes precedence over whatever route was requested.
   if (home !== LOGIN_SUCCESS_ROUTE) return home
 
-  if (isOAuthInteractionRoute(pathname)) {
-    return null
-  }
-
-  const urlTenant = getTenantIdentifierFromPath(pathname)
-  const ownTenant = account?.tenant?.identifier
-  if (urlTenant && ownTenant && urlTenant !== ownTenant) return NO_ACCESS_ROUTE
-
+  // Fully-registered authenticated user on a non-auth route: OAuth interaction
+  // routes (authorize / consent / device / …) render as-is so the OAuth2
+  // redirect continues; every other valid account route renders too.
+  // The identity app uses flat routes with no /:tenantId/ prefix, so there is
+  // no URL-level tenant to check.
   return null
 }
