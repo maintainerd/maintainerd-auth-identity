@@ -5,7 +5,7 @@ import LoginLayout from '@/components/layout/LoginLayout'
 import { Button } from '@/components/ui/button'
 import { authorizeOAuth } from '@/services/api/oauth'
 import { useTenant } from '@/hooks/useTenant'
-import { normalizeOAuthAuthorizeSearch, oauthLoginRoute } from '@/utils/oauthRedirect'
+import { normalizeOAuthAuthorizeSearch, oauthLoginRoute, withRequestId } from '@/utils/oauthRedirect'
 import { ApiError } from '@/services/api/client'
 
 export default function OAuthAuthorizePage() {
@@ -56,6 +56,12 @@ export default function OAuthAuthorizePage() {
         const errorCode = err instanceof Error ? err.message : 'authorization_failed'
         if (postSilentResult({ error: errorCode })) return
         if (err instanceof Error && err.message === 'login_required') {
+          // Industry-standard server-handle continuation: the backend persists
+          // the authorize request and returns an opaque, single-use request_id.
+          // Carry it into the interactive-step URL for ALL paths (signup AND
+          // login) so the flow resumes via /oauth/authorize/continue. The legacy
+          // sessionStorage return-to (set by oauthLoginRoute) remains as a
+          // defensive fallback when the backend returns no handle.
           const requestId = err instanceof ApiError ? err.requestId : undefined
           const screenHint = searchParams.get('screen_hint')
           if (screenHint === 'signup' && requestId) {
@@ -64,7 +70,8 @@ export default function OAuthAuthorizePage() {
             navigate({ pathname: '/register', search: params.toString() }, { replace: true })
             return
           }
-          navigate(oauthLoginRoute(window.location.pathname, window.location.search), { replace: true })
+          const loginRoute = oauthLoginRoute(window.location.pathname, window.location.search)
+          navigate(withRequestId(loginRoute, requestId), { replace: true })
           return
         }
         setError(err instanceof Error ? err.message : 'Authorization failed.')

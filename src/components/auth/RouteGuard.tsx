@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useTenant } from '@/hooks/useTenant'
 import { resolveGuardRedirect } from '@/utils/postAuthRoute'
+import { getRequestId, hasPendingOAuthReturnTo, hasPendingInviteCallback } from '@/utils/oauthRedirect'
 import AppLoadingScreen from '@/components/layout/AppLoadingScreen'
 import { useOAuthConnections } from '@/hooks/useOAuthConnections'
 
@@ -26,6 +27,17 @@ export function RouteGuard({ children }: { children: ReactNode }) {
     return <AppLoadingScreen branding={currentTenant?.branding} />
   }
 
+  // A pending continuation means a finished user finishing a registration detour
+  // should continue the OAuth flow (via /login-success) rather than being coerced
+  // to the account dashboard. Primary signal is the request_id handle in the URL;
+  // the legacy sessionStorage return-to / invite callback remain as a defensive
+  // fallback. Peeked non-consumingly so the guard function stays pure and the
+  // handle is only consumed by LoginSuccessPage.
+  const pendingContinuation =
+    getRequestId(location.search) !== undefined ||
+    hasPendingOAuthReturnTo() ||
+    hasPendingInviteCallback()
+
   const target = resolveGuardRedirect({
     pathname: location.pathname,
     search: location.search,
@@ -33,6 +45,7 @@ export function RouteGuard({ children }: { children: ReactNode }) {
     account,
     tenant: currentTenant,
     registrationEnabled: connections.data?.registration_enabled,
+    pendingContinuation,
   })
 
   if (target && target !== location.pathname) {

@@ -9,9 +9,8 @@ import { buildRegisterSchema, type RegisterFormData } from "@/lib/validations"
 import { useAuth } from "@/hooks/useAuth"
 import { useTenant } from "@/hooks/useTenant"
 import { useToast } from "@/hooks/useToast"
-import { resolvePostAuthRoute, loginSuccessRoute } from "@/utils/postAuthRoute"
-import { rememberOAuthReturnTo, clearOAuthReturnTo } from "@/utils/oauthRedirect"
-import { continueOAuth } from "@/services/api/oauth"
+import { getRequestId } from "@/utils/oauthRedirect"
+import { finishAuthStep } from "@/utils/oauthContinuation"
 
 const RegisterForm = () => {
   const navigate = useNavigate()
@@ -58,42 +57,24 @@ const RegisterForm = () => {
   const onSubmit = async (data: RegisterFormData) => {
     setRegisterError(null)
     try {
-      const requestId = searchParams.get('request_id')
+      const requestId = getRequestId(searchParams)
       const fallbackName = data.email.split('@')[0] || 'User'
       await registerUser(data.fullname?.trim() || fallbackName, data.email, data.password, data.phone?.trim() || undefined)
 
       sessionStorage.setItem('register_email', data.email)
       showSuccess('Account created successfully!')
 
-      if (requestId) {
-        try {
-          const result = await continueOAuth(requestId)
-          if (result.redirect_uri) {
-            window.location.assign(result.redirect_uri)
-            return
-          }
-          if (result.consent_challenge) {
-            navigate(`/oauth/consent/${encodeURIComponent(result.consent_challenge)}`, { replace: true })
-            return
-          }
-        } catch {
-          // fall through to normal post-auth routing
-        }
-      }
-
       // Registration issues an httpOnly session cookie, so sync the auth state
-      // and route based on the live account (email verification → profile →
-      // login-success). This keeps the user in a single authenticated session
-      // through the rest of the sign-up flow.
+      // and apply the single shared continuation rule: route to the next required
+      // detour (email verification → profile) threading the request_id handle, or
+      // resume the pending OAuth authorize once the account is fully registered.
       const account = await refreshAccount()
-      const dest = resolvePostAuthRoute(account, getCurrentTenant())
-      const oauthReturnTo = dest === loginSuccessRoute()
-        ? rememberOAuthReturnTo(searchParams.get('return_to'))
-        : null
-      if (dest === loginSuccessRoute() && !oauthReturnTo) {
-        clearOAuthReturnTo()
-      }
-      navigate(oauthReturnTo || dest, { replace: true })
+      finishAuthStep({
+        account,
+        tenant: getCurrentTenant(),
+        requestId,
+        navigate,
+      })
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Registration failed. Please try again."
       setRegisterError(errorMessage)

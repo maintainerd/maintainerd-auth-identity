@@ -14,7 +14,7 @@
 
 import type { AccountEntity } from '@/services/api/auth/types'
 import type { TenantEntity } from '@/services/api/tenants/types'
-import { isBrokerAuthorizeRoute, isOAuthInteractionRoute, oauthLoginRoute } from '@/utils/oauthRedirect'
+import { getRequestId, isBrokerAuthorizeRoute, isOAuthInteractionRoute, oauthLoginRoute, withRequestId } from '@/utils/oauthRedirect'
 
 export const VERIFY_EMAIL_ROUTE = '/email-verification'
 export const REGISTER_PROFILE_ROUTE = '/register/profile'
@@ -76,6 +76,14 @@ export interface GuardContext {
   tenant: TenantEntity | null | undefined
   registrationEnabled?: boolean
   verificationRequired?: boolean
+  /**
+   * Whether there is a pending continuation (an OAuth authorize return-to or an
+   * invite callback) waiting to be resumed. Computed by the caller from a
+   * non-consuming peek so this function stays pure. When true, a finished user
+   * on a registration detour is routed to /login-success (which consumes the
+   * continuation and forwards to the callback) instead of the dashboard.
+   */
+  pendingContinuation?: boolean
 }
 
 /**
@@ -91,7 +99,7 @@ export interface GuardContext {
  * (otherwise account/tenant are not yet known).
  */
 export function resolveGuardRedirect(ctx: GuardContext): string | null {
-  const { pathname, search = '', isAuthenticated, account, tenant, registrationEnabled, verificationRequired } = ctx
+  const { pathname, search = '', isAuthenticated, account, tenant, registrationEnabled, verificationRequired, pendingContinuation } = ctx
 
   if (pathname === NO_ACCESS_ROUTE || pathname === SERVICE_UNAVAILABLE_ROUTE) {
     return null
@@ -102,11 +110,21 @@ export function resolveGuardRedirect(ctx: GuardContext): string | null {
   // LOGIN_SUCCESS_ROUTE.
   const home = isAuthenticated ? resolvePostAuthRoute(account, tenant, { verificationRequired }) : LOGIN_ROUTE
 
-  // Where a fully-registered, authenticated user actually lands when there is no
-  // OAuth redirect in play: the account dashboard, not the login-success screen.
-  // OAuth interaction routes are handled separately below and are never coerced
-  // to the dashboard, so an OAuth2 redirect still continues its flow.
-  const authenticatedHome = home === LOGIN_SUCCESS_ROUTE ? ACCOUNT_ROUTE : home
+  // The opaque authorize handle rides through every guard redirect so it survives
+  // each interactive-step hop (login → verify → profile → login-success) and the
+  // final continuation resumes the server-side authorize request.
+  const requestId = getRequestId(search)
+
+  // Where a fully-registered, authenticated user actually lands. Normally the
+  // account dashboard — but when a continuation is pending (a request_id handle,
+  // or the legacy OAuth return-to / invite callback fallback), route to
+  // /login-success instead: that page resumes the authorize request and forwards
+  // to the caller's callback URL. Without this, finishing a registration detour
+  // (create profile / verify email) during an OAuth flow would be coerced to the
+  // dashboard before the continuation ran. Detour homes also carry the handle.
+  const authenticatedHome = home === LOGIN_SUCCESS_ROUTE
+    ? (pendingContinuation ? withRequestId(LOGIN_SUCCESS_ROUTE, requestId) : ACCOUNT_ROUTE)
+    : withRequestId(home, requestId)
 
   if (pathname === '/') {
     return authenticatedHome

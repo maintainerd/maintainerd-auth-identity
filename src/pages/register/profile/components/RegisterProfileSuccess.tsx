@@ -1,21 +1,37 @@
-import { useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useCallback, useEffect } from "react"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { CheckCircle, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/hooks/useAuth"
+import { useTenant } from "@/hooks/useTenant"
+import { getRequestId } from "@/utils/oauthRedirect"
+import { finishAuthStep } from "@/utils/oauthContinuation"
 
 const RegisterProfileSuccess = () => {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const { account } = useAuth()
+  const { currentTenant } = useTenant()
+
+  // Profile creation was the last registration step, so the account is now fully
+  // registered. Apply the single shared continuation rule: resume the pending
+  // OAuth authorize (request_id) via login-success, or land on the dashboard.
+  const proceed = useCallback(() => {
+    finishAuthStep({
+      account,
+      tenant: currentTenant,
+      requestId: getRequestId(searchParams),
+      navigate,
+    })
+  }, [account, currentTenant, searchParams, navigate])
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      navigate("/login-success")
-    }, 5000)
-
+    const timer = setTimeout(proceed, 5000)
     return () => clearTimeout(timer)
-  }, [navigate])
+  }, [proceed])
 
   const handleContinue = () => {
-    navigate("/login-success")
+    proceed()
   }
 
   return (

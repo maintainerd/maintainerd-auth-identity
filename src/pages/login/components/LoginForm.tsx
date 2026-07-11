@@ -10,16 +10,15 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
 import { useTenant } from "@/hooks/useTenant"
 import { LoginMFAStep } from "./LoginMFAStep"
-import { resolvePostAuthRoute, loginSuccessRoute } from "@/utils/postAuthRoute"
 import type { AccountEntity } from '@/services/api/auth/types'
 import { sendMagicLink } from '@/services/api/auth'
 import { Button } from '@/components/ui/button'
 import {
   normalizeOAuthAuthorizeSearch,
-  clearOAuthReturnTo,
-  rememberOAuthReturnTo,
+  getRequestId,
   safeOAuthReturnTo,
 } from '@/utils/oauthRedirect'
+import { finishAuthStep } from '@/utils/oauthContinuation'
 import { fetchOAuthConnections } from '@/services/api/oauth'
 import type { OAuthConnection, OAuthConnections } from '@/services/api/oauth/types'
 
@@ -127,19 +126,20 @@ const LoginForm = () => {
   })
 
   const finishLogin = (account: AccountEntity | null | undefined) => {
-    const dest = resolvePostAuthRoute(account, currentTenant)
-    const oauthReturnTo = dest === loginSuccessRoute()
-      ? rememberOAuthReturnTo(searchParams.get('return_to'))
-      : null
-    if (dest === loginSuccessRoute() && !oauthReturnTo) {
-      clearOAuthReturnTo()
+    // Single shared continuation rule: fully registered → continue the pending
+    // OAuth authorize (request_id) or the dashboard; mid-registration → the next
+    // detour step, threading request_id through the URL.
+    const outcome = finishAuthStep({
+      account,
+      tenant: currentTenant,
+      requestId: getRequestId(searchParams),
+      navigate,
+    })
+    // Only celebrate a completed direct sign-in; the OAuth continuation and the
+    // verify/profile detours are not a finished first-party login.
+    if (outcome === 'dashboard') {
+      showSuccess('Login successful!')
     }
-    // Only celebrate a completed sign-in; the verify/profile detours are
-    // continuations of an incomplete registration, not a finished login.
-    if (dest === loginSuccessRoute() && !oauthReturnTo) {
-      showSuccess("Login successful!")
-    }
-    navigate(oauthReturnTo || dest, { replace: true })
   }
 
   const onSubmit = async (data: LoginFormData) => {

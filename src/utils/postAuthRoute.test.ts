@@ -100,4 +100,75 @@ describe('resolveGuardRedirect OAuth broker routing', () => {
   it('still renders login-success (it performs OAuth/invite continuation itself)', () => {
     expect(resolveGuardRedirect({ ...authenticated, pathname: '/login-success' })).toBeNull()
   })
+
+  describe('finishing a registration detour with a pending continuation', () => {
+    it('routes a completed user off /register/profile to /login-success when a continuation is pending', () => {
+      expect(resolveGuardRedirect({
+        ...authenticated,
+        pathname: '/register/profile',
+        pendingContinuation: true,
+      })).toBe('/login-success')
+    })
+
+    it('routes a completed user off /register/profile to /account when no continuation is pending', () => {
+      expect(resolveGuardRedirect({
+        ...authenticated,
+        pathname: '/register/profile',
+        pendingContinuation: false,
+      })).toBe('/account')
+    })
+
+    it('defaults to /account off /register/profile when pendingContinuation is unset', () => {
+      expect(resolveGuardRedirect({
+        ...authenticated,
+        pathname: '/register/profile',
+      })).toBe('/account')
+    })
+
+    it('routes a completed user off /email-verification to /login-success when a continuation is pending', () => {
+      expect(resolveGuardRedirect({
+        ...authenticated,
+        pathname: '/email-verification',
+        pendingContinuation: true,
+      })).toBe('/login-success')
+    })
+
+    it('routes a completed user off /email-verification to /account when no continuation is pending', () => {
+      expect(resolveGuardRedirect({
+        ...authenticated,
+        pathname: '/email-verification',
+        pendingContinuation: false,
+      })).toBe('/account')
+    })
+  })
+
+  describe('threads the request_id handle through guard redirects', () => {
+    it('carries request_id onto the login-success convergence for a completed detour', () => {
+      expect(resolveGuardRedirect({
+        ...authenticated,
+        pathname: '/register/profile',
+        search: '?request_id=abc',
+        pendingContinuation: true,
+      })).toBe('/login-success?request_id=abc')
+    })
+
+    it('carries request_id onto the next detour hop (verify → profile)', () => {
+      expect(resolveGuardRedirect({
+        ...authenticated,
+        account: { ...authenticated.account, profiles: [] },
+        pathname: '/email-verification',
+        search: '?request_id=abc',
+        pendingContinuation: true,
+      })).toBe('/register/profile?request_id=abc')
+    })
+
+    it('does not thread request_id onto the dashboard (no pending continuation)', () => {
+      expect(resolveGuardRedirect({
+        ...authenticated,
+        pathname: '/register/profile',
+        search: '?request_id=abc',
+        pendingContinuation: false,
+      })).toBe('/account')
+    })
+  })
 })

@@ -1,6 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { bootstrapToTenantEntity } from './index'
 import type { TenantBootstrap } from './types'
+
+// Mock the HTTP client so importing the service module doesn't pull in the
+// dev-only debug helper (which touches `window` after teardown).
+vi.mock('../client', () => ({ get: vi.fn() }))
 
 const bootstrap: TenantBootstrap = {
   tenant: {

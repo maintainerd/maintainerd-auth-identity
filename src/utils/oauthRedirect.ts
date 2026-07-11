@@ -3,6 +3,34 @@ const INVITE_CALLBACK_KEY = 'maintainerd_auth_invite_callback'
 const AUTHORIZE_ROUTES = ['/authorize', '/oauth/authorize']
 const BROKER_HINT_PARAMS = ['idp_hint', 'provider_hint', 'identity_provider', 'connection']
 
+/**
+ * The opaque, single-use, short-lived server handle for a pending authorize
+ * request (industry standard: Ory `login_challenge`, Keycloak auth-session,
+ * Auth0 transaction). It is carried through each interactive step in the URL and
+ * resumed via `/oauth/authorize/continue`. It is NOT a token/secret/PII — it is
+ * safe to place in the URL.
+ */
+export const REQUEST_ID_PARAM = 'request_id'
+
+/** Read the pending authorize handle from a query string or params. */
+export function getRequestId(search: string | URLSearchParams): string | undefined {
+  const params = typeof search === 'string' ? new URLSearchParams(search) : search
+  return params.get(REQUEST_ID_PARAM)?.trim() || undefined
+}
+
+/**
+ * Append the request_id handle to an internal app path (preserving any existing
+ * query), so the handle survives each interactive step / guard redirect. No-op
+ * when there is no handle.
+ */
+export function withRequestId(path: string, requestId?: string): string {
+  if (!requestId) return path
+  const [pathname, existing = ''] = path.split('?')
+  const params = new URLSearchParams(existing)
+  params.set(REQUEST_ID_PARAM, requestId)
+  return `${pathname}?${params.toString()}`
+}
+
 const OAUTH_INTERACTION_ROUTES = [
   ...AUTHORIZE_ROUTES,
   '/device',
@@ -72,6 +100,16 @@ export function consumeOAuthReturnTo(): string | null {
   return safe
 }
 
+/**
+ * Non-consuming peek: is there a valid, pending OAuth return-to stored?
+ * Used by the route guard to decide whether a finished user should continue the
+ * OAuth authorize flow (via /login-success, which consumes it) instead of being
+ * coerced to the account dashboard. Does NOT remove the stored value.
+ */
+export function hasPendingOAuthReturnTo(): boolean {
+  return safeOAuthReturnTo(sessionStorage.getItem(OAUTH_RETURN_KEY)) !== null
+}
+
 export function clearOAuthReturnTo(): void {
   sessionStorage.removeItem(OAUTH_RETURN_KEY)
 }
@@ -109,6 +147,16 @@ export function consumeInviteCallback(): string | null {
   const value = sessionStorage.getItem(INVITE_CALLBACK_KEY)
   sessionStorage.removeItem(INVITE_CALLBACK_KEY)
   return safeExternalRedirect(value)
+}
+
+/**
+ * Non-consuming peek: is there a valid, pending invite callback stored? Like
+ * hasPendingOAuthReturnTo, this lets the guard route a finished user to
+ * /login-success (which consumes it and continues to the callback) rather than
+ * the dashboard. Does NOT remove the stored value.
+ */
+export function hasPendingInviteCallback(): boolean {
+  return safeExternalRedirect(sessionStorage.getItem(INVITE_CALLBACK_KEY)) !== null
 }
 
 export function clearInviteCallback(): void {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Check, ShieldCheck, User, Shield, Monitor, Link2, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -7,16 +7,19 @@ import LoginLayout from '@/components/layout/LoginLayout'
 import { useAuth } from '@/hooks/useAuth'
 import { useTenant } from '@/hooks/useTenant'
 import { useToast } from '@/hooks/useToast'
-import { consumeOAuthReturnTo, consumeInviteCallback } from '@/utils/oauthRedirect'
+import { getRequestId } from '@/utils/oauthRedirect'
+import { ACCOUNT_ROUTE, resumeOAuthContinuation } from '@/utils/oauthContinuation'
 import { fetchMFAStatus } from '@/services/api/mfa'
 
 export default function LoginSuccessPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { logout, isAuthenticated } = useAuth()
   const { currentTenant } = useTenant()
   const { showError } = useToast()
   const redirectedRef = useRef(false)
   const [mfaNudgeDismissed, setMfaNudgeDismissed] = useState(false)
+  const requestId = getRequestId(searchParams)
 
   // MFA enrollment nudge: after a completed sign-in, if the user has no second
   // factor enrolled we gently prompt them to set one up. Non-blocking — the
@@ -36,27 +39,18 @@ export default function LoginSuccessPage() {
     !mfaStatus.is_email_otp_available
   const showMfaNudge = hasNoFactors && !mfaNudgeDismissed
 
+  // The single OAuth2 continuation point. Resumes the pending authorize request
+  // with the request_id handle (primary) or the legacy sessionStorage return-to /
+  // invite callback (defensive fallback); with nothing to resume it is a direct
+  // login → the account dashboard.
   useEffect(() => {
     if (redirectedRef.current) return
-
-    const oauthReturnTo = consumeOAuthReturnTo()
-    if (oauthReturnTo) {
-      redirectedRef.current = true
-      navigate(oauthReturnTo, { replace: true })
-      return
-    }
-
-    const inviteCallback = consumeInviteCallback()
-    if (inviteCallback) {
-      redirectedRef.current = true
-      window.location.assign(inviteCallback)
-      return
-    }
-
-    // Direct login (no OAuth or invite context) → go straight to the account dashboard.
     redirectedRef.current = true
-    navigate('/account', { replace: true })
-  }, [navigate])
+    void (async () => {
+      if (await resumeOAuthContinuation(requestId, navigate)) return
+      navigate(ACCOUNT_ROUTE, { replace: true })
+    })()
+  }, [navigate, requestId])
 
   const handleLogout = async () => {
     try {

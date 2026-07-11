@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import * as yup from 'yup'
 import { yupResolver } from "@hookform/resolvers/yup"
@@ -13,7 +13,8 @@ import LoginLayout from "@/components/layout/LoginLayout"
 import { useTenant } from "@/hooks/useTenant"
 import { useAuth } from "@/hooks/useAuth"
 import { useToast } from "@/hooks/useToast"
-import { resolvePostAuthRoute } from "@/utils/postAuthRoute"
+import { getRequestId } from "@/utils/oauthRedirect"
+import { finishAuthStep } from "@/utils/oauthContinuation"
 
 const schema = yup.object({
   code: yup.string().required('Code is required').min(6).max(6),
@@ -23,6 +24,7 @@ type FormData = yup.InferType<typeof schema>
 
 export default function VerifyEmailPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { currentTenant } = useTenant()
   const { isAuthenticated, refreshAccount } = useAuth()
   const { showSuccess, showError } = useToast()
@@ -49,13 +51,20 @@ export default function VerifyEmailPage() {
     try {
       await post(`/email-verification/verify?${publicAuthQuery()}`, { email, otp: data.code })
 
-      // Active sign-up session: continue to profile registration / login-success
-      // without forcing a re-login. Otherwise (verified from a login redirect
-      // with no session yet) show the success screen and send them to sign in.
+      // Active sign-up session: apply the shared continuation rule — continue the
+      // pending OAuth authorize (request_id) once fully registered, else route to
+      // the next detour step (profile) threading the handle. Otherwise (verified
+      // from a login redirect with no session yet) show the success screen and
+      // send them to sign in.
       if (isAuthenticated) {
         sessionStorage.removeItem('register_email')
         const fresh = await refreshAccount()
-        navigate(resolvePostAuthRoute(fresh, currentTenant), { replace: true })
+        finishAuthStep({
+          account: fresh,
+          tenant: currentTenant,
+          requestId: getRequestId(searchParams),
+          navigate,
+        })
         return
       }
       sessionStorage.removeItem('register_email')
