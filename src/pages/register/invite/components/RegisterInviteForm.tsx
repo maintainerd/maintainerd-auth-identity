@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import { useNavigate, useSearchParams, Link } from "react-router-dom"
 import { AlertCircle, Mail } from "lucide-react"
-import { FormSubmitButton, FormInputField, FormPasswordField, PasswordRequirements } from "@/components/form"
+import { FormSubmitButton, FormInputField, FormPasswordField, PasswordRequirements, FormConsentCheckbox } from "@/components/form"
 import { FieldGroup } from "@/components/ui/field"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/useAuth"
@@ -13,7 +13,7 @@ import { resolvePostAuthRoute, loginSuccessRoute } from "@/utils/postAuthRoute"
 import { rememberOAuthReturnTo, clearOAuthReturnTo, rememberInviteCallback } from "@/utils/oauthRedirect"
 import { fetchInviteContext } from "@/services/api/auth"
 import * as yup from "yup"
-import { buildPasswordValidation } from "@/lib/validations/authSchema"
+import { buildPasswordValidation, acceptTermsValidation } from "@/lib/validations/authSchema"
 import type { PasswordConfigPublic } from "@/services/api/tenants/types"
 
 interface InviteFormData {
@@ -21,6 +21,7 @@ interface InviteFormData {
   phone: string
   password: string
   confirmPassword: string
+  acceptTerms: boolean
 }
 
 function buildInviteSchema(cfg?: PasswordConfigPublic) {
@@ -34,6 +35,7 @@ function buildInviteSchema(cfg?: PasswordConfigPublic) {
       .string()
       .required('Please confirm your password')
       .oneOf([yup.ref('password')], 'Passwords must match'),
+    acceptTerms: acceptTermsValidation(),
   })
 }
 
@@ -73,7 +75,8 @@ const RegisterInviteForm = () => {
       fullname: "",
       phone: "",
       password: "",
-      confirmPassword: ""
+      confirmPassword: "",
+      acceptTerms: false
     },
     mode: 'onSubmit',
     reValidateMode: 'onSubmit'
@@ -209,6 +212,12 @@ const RegisterInviteForm = () => {
             error={errors.confirmPassword?.message}
             required
             {...register("confirmPassword")}
+          />
+          <FormConsentCheckbox
+            error={errors.acceptTerms?.message}
+            termsUrl={getCurrentTenant()?.branding?.terms_of_service_url}
+            privacyUrl={getCurrentTenant()?.branding?.privacy_policy_url}
+            {...register("acceptTerms")}
           />
           <FormSubmitButton
             isSubmitting={isSubmitting}

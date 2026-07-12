@@ -76,6 +76,9 @@ export interface MFALoginVerifyRequest {
   method: string
   code?: string
   assertion?: unknown
+  // When true, the backend records this device as trusted so future logins from
+  // it can skip the MFA step until the tenant's trusted-device window expires.
+  remember_device?: boolean
 }
 
 export interface RefreshTokenRequest {

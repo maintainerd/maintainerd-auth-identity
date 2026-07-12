@@ -37,6 +37,7 @@ export function LoginMFAStep({ challengeToken, allowedMethods, tenantId, clientI
   const [code, setCode] = useState("")
   const [smsSent, setSmsSent] = useState(false)
   const [emailOtpSent, setEmailOtpSent] = useState(false)
+  const [rememberDevice, setRememberDevice] = useState(false)
 
   useEffect(() => {
     if (!method && methods.length > 0) setMethod(methods[0])
@@ -60,9 +61,9 @@ export function LoginMFAStep({ challengeToken, allowedMethods, tenantId, clientI
       if (METHOD_META[method]?.webauthn) {
         const options = await beginMFALoginWebAuthn(challengeToken, { tenantId, clientId })
         const assertion = await getAssertion(options)
-        return completeMFALogin(challengeToken, method, { assertion }, tenantId, clientId)
+        return completeMFALogin(challengeToken, method, { assertion }, tenantId, clientId, rememberDevice)
       }
-      return completeMFALogin(challengeToken, method, { code: extractMFACode(method, code) }, tenantId, clientId)
+      return completeMFALogin(challengeToken, method, { code: extractMFACode(method, code) }, tenantId, clientId, rememberDevice)
     },
     onSuccess: (result) => onVerified(result),
     onError: (e) => showError(e),
@@ -158,6 +159,18 @@ export function LoginMFAStep({ challengeToken, allowedMethods, tenantId, clientI
           </div>
         </>
       )}
+
+      <label htmlFor="login-mfa-remember" className="flex items-center gap-2 text-sm text-muted-foreground">
+        <input
+          id="login-mfa-remember"
+          type="checkbox"
+          className="size-4 rounded border-input accent-primary"
+          checked={rememberDevice}
+          onChange={(e) => setRememberDevice(e.target.checked)}
+          disabled={verifyMutation.isPending}
+        />
+        Trust this device — skip verification here next time
+      </label>
 
       <div className="flex items-center gap-2">
         <Button onClick={() => verifyMutation.mutate()} disabled={!canSubmit} className="flex-1">

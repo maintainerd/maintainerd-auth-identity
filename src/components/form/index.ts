@@ -5,6 +5,7 @@
 
 export { FormInputField, type FormInputFieldProps } from './FormInputField'
 export { FormPasswordField, type FormPasswordFieldProps } from './FormPasswordField'
+export { FormConsentCheckbox, type FormConsentCheckboxProps } from './FormConsentCheckbox'
 export { PasswordRequirements, type PasswordRequirementsProps } from './PasswordRequirements'
 export { buildPasswordRules, PASSWORD_SYMBOL_REGEX, type PasswordRule } from './passwordRules'
 export { FormSelectField, type FormSelectFieldProps, type SelectOption } from './FormSelectField'

@@ -6,6 +6,18 @@
 import * as yup from 'yup'
 import type { PasswordConfigPublic } from '@/services/api/tenants/types'
 
+const CONSENT_REQUIRED_MESSAGE = 'You must accept the Terms of Service and Privacy Policy'
+
+// Required Terms-of-Service / Privacy acceptance. Used on account-creation forms
+// so the consent the backend records at registration reflects an explicit,
+// user-driven agreement (compliance) rather than a silent default.
+export function acceptTermsValidation() {
+  return yup
+    .boolean()
+    .oneOf([true], CONSENT_REQUIRED_MESSAGE)
+    .required(CONSENT_REQUIRED_MESSAGE)
+}
+
 export function buildPasswordValidation(cfg?: PasswordConfigPublic) {
   let schema = yup.string().required('Password is required')
 
@@ -79,6 +91,7 @@ export function buildRegisterSchema(cfg?: PasswordConfigPublic, requiredFields: 
       .string()
       .required('Please confirm your password')
       .oneOf([yup.ref('password')], 'Passwords must match'),
+    acceptTerms: acceptTermsValidation(),
   })
 }
 
@@ -102,7 +115,8 @@ export const registerSchema = yup.object({
   confirmPassword: yup
     .string()
     .required('Please confirm your password')
-    .oneOf([yup.ref('password')], 'Passwords must match')
+    .oneOf([yup.ref('password')], 'Passwords must match'),
+  acceptTerms: acceptTermsValidation(),
 })
 
 export type RegisterFormData = yup.InferType<typeof registerSchema>

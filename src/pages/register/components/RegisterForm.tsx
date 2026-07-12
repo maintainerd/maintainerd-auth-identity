@@ -3,7 +3,7 @@ import { useForm, type Resolver } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import { useNavigate, Link, useSearchParams } from "react-router-dom"
 import { AlertCircle } from "lucide-react"
-import { FormSubmitButton, FormInputField, FormPasswordField, PasswordRequirements } from "@/components/form"
+import { FormSubmitButton, FormInputField, FormPasswordField, PasswordRequirements, FormConsentCheckbox } from "@/components/form"
 import { FieldGroup } from "@/components/ui/field"
 import { buildRegisterSchema, type RegisterFormData } from "@/lib/validations"
 import { useAuth } from "@/hooks/useAuth"
@@ -39,7 +39,8 @@ const RegisterForm = () => {
       fullname: "",
       phone: "",
       password: "",
-      confirmPassword: ""
+      confirmPassword: "",
+      acceptTerms: false
     },
     mode: 'onSubmit',
     reValidateMode: 'onSubmit'
@@ -148,6 +149,12 @@ const RegisterForm = () => {
             error={errors.confirmPassword?.message}
             required
             {...register("confirmPassword")}
+          />
+          <FormConsentCheckbox
+            error={errors.acceptTerms?.message}
+            termsUrl={getCurrentTenant()?.branding?.terms_of_service_url}
+            privacyUrl={getCurrentTenant()?.branding?.privacy_policy_url}
+            {...register("acceptTerms")}
           />
           <FormSubmitButton
             isSubmitting={isSubmitting}

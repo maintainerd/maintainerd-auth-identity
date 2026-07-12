@@ -23,6 +23,12 @@ export interface PasswordConfigPublic {
   require_lowercase: boolean
   require_number: boolean
   require_symbol: boolean
+  // Backend-authoritative checks, surfaced so password fields can show them as
+  // requirements. Common-password and HIBP screening run only on the backend;
+  // the frontend displays the backend's error. min_strength_score 0 = disabled.
+  min_strength_score: number
+  reject_common_passwords: boolean
+  check_hibp: boolean
 }
 
 export interface BrandingColors {
