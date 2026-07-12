@@ -105,13 +105,18 @@ export const revokeAllSessions = (): Promise<void> =>
 // Trusted devices
 // ---------------------------------------------------------------------------
 
+// Matches the backend UserTrustedDeviceResponseDTO (/me/devices).
 export interface TrustedDevice {
-  device_uuid: string
+  uuid: string
   device_name?: string
-  user_agent?: string
+  location?: string
   ip_address?: string
-  trusted_at: string
-  last_used_at?: string
+  user_agent?: string
+  trusted_until?: string | null
+  last_seen_at?: string | null
+  created_at: string
+  /** True for the browser making the request, so the UI can badge "This device". */
+  current?: boolean
 }
 
 export const fetchTrustedDevices = (): Promise<TrustedDevice[]> =>

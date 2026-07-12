@@ -1,15 +1,25 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Smartphone, Trash2 } from 'lucide-react'
+import { MonitorSmartphone, Trash2, Globe, MapPin, Clock, Calendar, ShieldCheck } from 'lucide-react'
 import AccountLayout from '@/components/layout/AccountLayout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/useToast'
+import { formatUserAgent } from '@/lib/userAgent'
 import {
   fetchTrustedDevices,
   revokeTrustedDevice,
   type TrustedDevice,
 } from '@/services/api/account'
+
+function fmt(value?: string | null) {
+  if (!value) return '—'
+  try {
+    return new Date(value).toLocaleString()
+  } catch {
+    return '—'
+  }
+}
 
 function DeviceRow({
   device,
@@ -21,21 +31,53 @@ function DeviceRow({
   revoking: boolean
 }) {
   const [confirming, setConfirming] = useState(false)
+  const label = device.device_name || formatUserAgent(device.user_agent)
 
   return (
-    <li className="flex items-start justify-between gap-4 py-3">
-      <div className="flex min-w-0 items-center gap-3">
-        <Smartphone className="size-5 shrink-0 text-muted-foreground" />
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium">
-            {device.device_name ?? (device.user_agent ? device.user_agent.slice(0, 60) : 'Unknown device')}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Trusted {new Date(device.trusted_at).toLocaleDateString()}
-            {device.last_used_at && (
-              <> &middot; last used {new Date(device.last_used_at).toLocaleDateString()}</>
+    <li className="flex items-start justify-between gap-4 py-4">
+      <div className="flex min-w-0 items-start gap-3">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+          <MonitorSmartphone className="size-4" />
+        </div>
+        <div className="min-w-0 space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="truncate text-sm font-medium" title={device.user_agent ?? undefined}>
+              {label}
+            </p>
+            {device.current && (
+              <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                This device
+              </span>
             )}
-          </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            {device.location && (
+              <span className="inline-flex items-center gap-1">
+                <MapPin className="size-3" />
+                {device.location}
+              </span>
+            )}
+            {device.ip_address && (
+              <span className="inline-flex items-center gap-1 font-mono">
+                <Globe className="size-3" />
+                {device.ip_address}
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1">
+              <Clock className="size-3" />
+              Last used {fmt(device.last_seen_at)}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <Calendar className="size-3" />
+              Trusted {fmt(device.created_at)}
+            </span>
+            {device.trusted_until && (
+              <span className="inline-flex items-center gap-1">
+                <ShieldCheck className="size-3" />
+                Expires {fmt(device.trusted_until)}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -47,7 +89,10 @@ function DeviceRow({
               variant="destructive"
               className="h-7 text-xs"
               disabled={revoking}
-              onClick={() => { onRevoke(device.device_uuid); setConfirming(false) }}
+              onClick={() => {
+                onRevoke(device.uuid)
+                setConfirming(false)
+              }}
             >
               Confirm revoke
             </Button>
@@ -103,12 +148,10 @@ export default function AccountDevicesPage() {
             <CardTitle className="text-base">Devices that skip MFA</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading && (
-              <p className="text-sm text-muted-foreground">Loading devices…</p>
-            )}
+            {isLoading && <p className="text-sm text-muted-foreground">Loading devices…</p>}
             {!isLoading && devices.length === 0 && (
               <div className="flex flex-col items-center gap-3 py-8 text-center">
-                <Smartphone className="size-8 text-muted-foreground/50" />
+                <MonitorSmartphone className="size-8 text-muted-foreground/50" />
                 <p className="text-sm text-muted-foreground">No trusted devices</p>
                 <p className="text-xs text-muted-foreground">
                   Devices are added when you choose &ldquo;Trust this device&rdquo; during MFA.
@@ -118,7 +161,7 @@ export default function AccountDevicesPage() {
             <ul className="divide-y">
               {devices.map((device: TrustedDevice) => (
                 <DeviceRow
-                  key={device.device_uuid}
+                  key={device.uuid}
                   device={device}
                   onRevoke={(uuid) => revokeMutation.mutate(uuid)}
                   revoking={revokeMutation.isPending}
