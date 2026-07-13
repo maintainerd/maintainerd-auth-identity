@@ -151,6 +151,10 @@ export async function registerInvite(
     expires: queryParams.expires,
     sig: queryParams.sig,
   })
+  // email and callback_url are part of the signed URL, so they must be forwarded
+  // verbatim or the server-side signature check fails.
+  if (queryParams.email) params.set('email', queryParams.email)
+  if (queryParams.callback_url) params.set('callback_url', queryParams.callback_url)
   appendPublicAuthContext(params, {
     clientId: queryParams.client_id,
     tenantId: queryParams.tenant_id,

@@ -101,6 +101,10 @@ export function useAuth() {
     const sig = searchParams.get('sig') || ''
     const inviteClientId = searchParams.get('client_id') || undefined
     const inviteTenantId = searchParams.get('tenant_id') || undefined
+    // email + callback_url are signed into the invite URL; forward them verbatim
+    // so the backend signature check passes.
+    const inviteEmail = searchParams.get('email') || email
+    const inviteCallbackUrl = searchParams.get('callback_url') || undefined
 
     const result = await dispatch(registerInviteAsync({
       username: email,
@@ -109,6 +113,8 @@ export function useAuth() {
         invite_token: inviteToken,
         expires,
         sig,
+        email: inviteEmail,
+        callback_url: inviteCallbackUrl,
         client_id: inviteClientId,
         tenant_id: inviteTenantId,
       }

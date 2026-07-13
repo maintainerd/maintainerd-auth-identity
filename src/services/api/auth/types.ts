@@ -125,6 +125,7 @@ export interface RegisterInviteQueryParams {
   expires: string
   sig: string
   email?: string
+  callback_url?: string
   client_id?: string
   tenant_id?: string
 }
