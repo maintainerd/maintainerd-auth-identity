@@ -102,15 +102,13 @@ export interface RegisterServiceRequest extends Omit<RegisterRequest, 'username'
 
 /**
  * Register a new user
- * @param data - Registration data including fullname, email, password, and optional fields
+ * @param data - Registration data (email + password; email is sent as the username)
  * @returns Promise<RegisterResponse>
  */
 export async function register(data: RegisterServiceRequest): Promise<RegisterResponse> {
   const registerData: RegisterRequest = {
     username: data.email,
-    fullname: data.fullname,
     email: data.email,
-    phone: data.phone || '',
     password: data.password
   }
 

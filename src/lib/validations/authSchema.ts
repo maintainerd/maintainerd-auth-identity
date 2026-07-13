@@ -72,20 +72,13 @@ export interface LoginFormData {
 // Register Form Schema (config-driven)
 // Mirrors buildLoginSchema: the password rules come from the tenant's
 // password_config so registration enforces the same policy the backend does.
-export function buildRegisterSchema(cfg?: PasswordConfigPublic, requiredFields: string[] = []) {
-  const required = new Set(requiredFields)
+export function buildRegisterSchema(cfg?: PasswordConfigPublic) {
   return yup.object({
     email: yup
       .string()
       .required('Email is required')
       .email('Please enter a valid email address')
       .max(255, 'Email must not exceed 255 characters'),
-    fullname: required.has('fullname')
-      ? yup.string().trim().required('Full name is required').max(255, 'Full name must not exceed 255 characters')
-      : yup.string().trim().max(255, 'Full name must not exceed 255 characters').optional(),
-    phone: required.has('phone')
-      ? yup.string().trim().required('Phone is required')
-      : yup.string().trim().optional(),
     password: buildPasswordValidation(cfg),
     confirmPassword: yup
       .string()
@@ -102,8 +95,6 @@ export const registerSchema = yup.object({
     .required('Email is required')
     .email('Please enter a valid email address')
     .max(255, 'Email must not exceed 255 characters'),
-  fullname: yup.string().optional(),
-  phone: yup.string().optional(),
   password: yup
     .string()
     .required('Password is required')

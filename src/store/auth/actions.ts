@@ -96,8 +96,6 @@ export const registerAsync = createAsyncThunk(
 export interface RegisterInviteAsyncRequest {
   username: string
   password: string
-  fullname?: string
-  phone?: string
   queryParams: RegisterInviteQueryParams
 }
 
@@ -106,7 +104,7 @@ export const registerInviteAsync = createAsyncThunk(
   async (data: RegisterInviteAsyncRequest, thunkAPI) => {
     try {
       const response = await authRegisterInvite(
-        { username: data.username, password: data.password, fullname: data.fullname, phone: data.phone },
+        { username: data.username, password: data.password },
         data.queryParams
       )
       return { data: response.data }

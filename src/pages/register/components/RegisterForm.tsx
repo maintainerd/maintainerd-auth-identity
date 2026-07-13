@@ -36,8 +36,6 @@ const RegisterForm = () => {
     resolver: yupResolver(registerSchema) as Resolver<RegisterFormData>,
     defaultValues: {
       email: "",
-      fullname: "",
-      phone: "",
       password: "",
       confirmPassword: "",
       acceptTerms: false
@@ -59,8 +57,7 @@ const RegisterForm = () => {
     setRegisterError(null)
     try {
       const requestId = getRequestId(searchParams)
-      const fallbackName = data.email.split('@')[0] || 'User'
-      await registerUser(data.fullname?.trim() || fallbackName, data.email, data.password, data.phone?.trim() || undefined)
+      await registerUser(data.email, data.password)
 
       sessionStorage.setItem('register_email', data.email)
       showSuccess('Account created successfully!')
@@ -111,23 +108,6 @@ const RegisterForm = () => {
             error={errors.email?.message}
             required
             {...register("email")}
-          />
-          <FormInputField
-            label="Full name"
-            placeholder="Your full name"
-            autoComplete="name"
-            disabled={isSubmitting}
-            error={errors.fullname?.message}
-            {...register("fullname")}
-          />
-          <FormInputField
-            label="Phone"
-            type="tel"
-            placeholder="+1 212 555 1234"
-            autoComplete="tel"
-            disabled={isSubmitting}
-            error={errors.phone?.message}
-            {...register("phone")}
           />
           <div className="flex flex-col gap-2">
             <FormPasswordField

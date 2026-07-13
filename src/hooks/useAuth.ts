@@ -73,10 +73,8 @@ export function useAuth() {
   }, [dispatch])
 
   const register = useCallback(async (
-    fullname: string,
     email: string,
     password: string,
-    phone?: string
   ) => {
     const clientId = searchParams.get('client_id')
     // Tenant comes from the domain bootstrap (its slug), never from a query param.
@@ -84,10 +82,8 @@ export function useAuth() {
     const registrationFlow = searchParams.get('registration_flow')
 
     const result = await dispatch(registerAsync({
-      fullname,
       email,
       password,
-      phone,
       clientId: clientId || undefined,
       tenantId,
       registrationFlow: registrationFlow || undefined,
@@ -99,8 +95,6 @@ export function useAuth() {
   const registerInvite = useCallback(async (
     email: string,
     password: string,
-    fullname?: string,
-    phone?: string,
   ) => {
     const inviteToken = searchParams.get('invite_token') || ''
     const expires = searchParams.get('expires') || ''
@@ -111,8 +105,6 @@ export function useAuth() {
     const result = await dispatch(registerInviteAsync({
       username: email,
       password,
-      fullname,
-      phone,
       queryParams: {
         invite_token: inviteToken,
         expires,

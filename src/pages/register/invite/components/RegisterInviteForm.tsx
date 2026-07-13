@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import { useNavigate, useSearchParams, Link } from "react-router-dom"
 import { AlertCircle, Mail } from "lucide-react"
-import { FormSubmitButton, FormInputField, FormPasswordField, PasswordRequirements, FormConsentCheckbox } from "@/components/form"
+import { FormSubmitButton, FormPasswordField, PasswordRequirements, FormConsentCheckbox } from "@/components/form"
 import { FieldGroup } from "@/components/ui/field"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/useAuth"
@@ -17,8 +17,6 @@ import { buildPasswordValidation, acceptTermsValidation } from "@/lib/validation
 import type { PasswordConfigPublic } from "@/services/api/tenants/types"
 
 interface InviteFormData {
-  fullname: string
-  phone: string
   password: string
   confirmPassword: string
   acceptTerms: boolean
@@ -26,8 +24,6 @@ interface InviteFormData {
 
 function buildInviteSchema(cfg?: PasswordConfigPublic) {
   return yup.object({
-    fullname: yup.string().default(''),
-    phone: yup.string().default(''),
     // Reuse the shared tenant password policy so invite registration enforces
     // exactly the same rules as standard registration and reset-password.
     password: buildPasswordValidation(cfg),
@@ -50,8 +46,15 @@ const RegisterInviteForm = () => {
 
   const invitedEmail = searchParams.get('email') || ''
   const inviteToken = searchParams.get('invite_token') || ''
+  // The signed invite URL now carries the post-registration callback directly;
+  // prefer it and only fall back to the invite-context fetch when it's absent.
+  const urlCallback = searchParams.get('callback_url')
 
   useEffect(() => {
+    if (urlCallback) {
+      setInviteCallback(urlCallback)
+      return
+    }
     if (!inviteToken) return
     let cancelled = false
     fetchInviteContext(inviteToken).then((ctx) => {
@@ -59,7 +62,7 @@ const RegisterInviteForm = () => {
       setInviteCallback(ctx.callback_url)
     }).catch(() => {})
     return () => { cancelled = true }
-  }, [inviteToken])
+  }, [inviteToken, urlCallback])
 
   const passwordConfig = getCurrentTenant()?.password_config
   const inviteSchema = useMemo(() => buildInviteSchema(passwordConfig), [passwordConfig])
@@ -72,8 +75,6 @@ const RegisterInviteForm = () => {
   } = useForm<InviteFormData>({
     resolver: yupResolver(inviteSchema),
     defaultValues: {
-      fullname: "",
-      phone: "",
       password: "",
       confirmPassword: "",
       acceptTerms: false
@@ -92,7 +93,7 @@ const RegisterInviteForm = () => {
   const onSubmit = async (data: InviteFormData) => {
     setRegisterError(null)
     try {
-      await registerInvite(invitedEmail, data.password, data.fullname?.trim() || undefined, data.phone?.trim() || undefined)
+      await registerInvite(invitedEmail, data.password)
 
       if (invitedEmail) {
         sessionStorage.setItem('register_email', invitedEmail)
@@ -173,24 +174,6 @@ const RegisterInviteForm = () => {
               <span>{invitedEmail}</span>
             </div>
           </div>
-
-          <FormInputField
-            label="Full name"
-            placeholder="Your full name"
-            autoComplete="name"
-            disabled={isSubmitting}
-            error={errors.fullname?.message}
-            {...register("fullname")}
-          />
-          <FormInputField
-            label="Phone"
-            type="tel"
-            placeholder="+1 212 555 1234"
-            autoComplete="tel"
-            disabled={isSubmitting}
-            error={errors.phone?.message}
-            {...register("phone")}
-          />
 
           <div className="flex flex-col gap-2">
             <FormPasswordField
